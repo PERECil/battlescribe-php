@@ -85,6 +85,11 @@ class CategoryLink implements JsonSerializable
         $this->constraints[] = $constraint;
     }
 
+    public function getLinkedObject(): CategoryEntry
+    {
+        return SharedCategoryEntry::get($this->targetId);
+    }
+
     public static function fromXml(?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {

@@ -6,7 +6,7 @@ namespace Battlescribe;
 
 use JsonSerializable;
 
-class Profile implements ProfileInterface, JsonSerializable
+class Profile implements ProfileInterface
 {
     private const NAME = 'profile';
 
@@ -73,6 +73,8 @@ class Profile implements ProfileInterface, JsonSerializable
             'id' => $this->id,
             'name' => $this->name,
             'characteristics' => $this->characteristics,
+            'type_id' => $this->typeId,
+            'type_name' => $this->typeName,
         ];
     }
 }

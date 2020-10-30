@@ -6,16 +6,18 @@ namespace Battlescribe;
 
 class SelectionEntryGroupReference implements SelectionEntryGroupInterface
 {
+    private EntryLink $entryLink;
     private string $targetId;
 
-    public function __construct(string $targetId)
+    public function __construct(EntryLink $entryLink, string $targetId)
     {
+        $this->entryLink = $entryLink;
         $this->targetId = $targetId;
     }
 
     public function getId(): string
     {
-        return $this->targetId;
+        return $this->entryLink->getId();
     }
 
     public function getName(): string
@@ -68,6 +70,14 @@ class SelectionEntryGroupReference implements SelectionEntryGroupInterface
      */
     public function jsonSerialize(): array
     {
-        return SharedSelectionEntryGroup::get($this->targetId)->jsonSerialize();
+        return [
+            'id' => $this->getId(),
+            'name' => $this->getName(),
+            'selection_entries' => $this->getSelectionEntries(),
+            'default_selection_entry_id' => $this->getDefaultSelectionEntryId(),
+
+            // Non needed because converted to references
+            // 'entry_links' => $this->entryLinks,
+        ];
     }
 }

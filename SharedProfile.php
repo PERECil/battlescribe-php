@@ -6,6 +6,7 @@ namespace Battlescribe;
 
 class SharedProfile extends Profile
 {
+    /** @psalm-var array<string,SharedProfile> */
     private static array $instances = [];
 
     public function __construct(string $id, string $name, bool $hidden, string $typeId, string $typeName)

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Battlescribe;
 
+use UnexpectedValueException;
+
 class InfoLink
 {
     private const NAME = 'infoLink';
@@ -27,6 +29,24 @@ class InfoLink
         $this->hidden = $hidden;
         $this->targetId = $targetId;
         $this->type = $type;
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return ProfileReference
+     */
+    public function getLinkedObject()
+    {
+        switch($this->type->getValue())
+        {
+            case InfoLinkType::PROFILE: return new ProfileReference($this, $this->targetId);
+            default:
+                throw new UnexpectedValueException();
+        }
     }
 
     public static function fromXml(?SimpleXmlElementFacade $element): ?self

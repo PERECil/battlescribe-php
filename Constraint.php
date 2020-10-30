@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Battlescribe;
 
-class Constraint
+use JsonSerializable;
+
+class Constraint implements JsonSerializable, ConstraintInterface
 {
     public const NAME = 'constraint';
 
@@ -131,5 +133,20 @@ class Constraint
         }
 
         return $result;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            'id' => $this->id,
+            'field' => $this->field,
+            'scope' => $this->scope,
+            'value' => $this->value,
+            'percent_value' => $this->percentValue,
+            'shared' => $this->shared,
+            'include_child_selections' => $this->includeChildSelections,
+            'include_child_forces' => $this->includeChildForces,
+            'type' => $this->type,
+        ];
     }
 }

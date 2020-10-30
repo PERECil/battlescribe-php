@@ -111,6 +111,17 @@ class SelectionEntry implements SelectionEntryInterface
         return $this->constraints;
     }
 
+    public function findConstraint(string $id): ?Constraint
+    {
+        foreach($this->constraints as $constraint) {
+            if($constraint->getId() === $id) {
+                return $constraint;
+            }
+        }
+
+        return null;
+    }
+
     public function getProfiles(): array
     {
         return $this->profiles;
@@ -164,6 +175,14 @@ class SelectionEntry implements SelectionEntryInterface
     public function addInfoLink(InfoLink $infoLink): void
     {
         $this->infoLinks[] = $infoLink;
+
+        $linkedObject = $infoLink->getLinkedObject();
+
+        if($linkedObject instanceof ProfileInterface) {
+            $this->addProfile($linkedObject);
+        } else {
+            throw new UnexpectedValueException();
+        }
     }
 
     public function addCategoryLink(CategoryLink $categoryLink): void
@@ -232,11 +251,11 @@ class SelectionEntry implements SelectionEntryInterface
             $result->addProfile(Profile::fromXml($profile));
         }
 
-        foreach($element->xpath('infolinks/infolink') as $infoLink) {
+        foreach($element->xpath('infoLinks/infoLink') as $infoLink) {
             $result->addInfoLink(InfoLink::fromXml($infoLink));
         }
 
-        foreach($element->xpath('categorylinks/categorylink') as $categoryLink) {
+        foreach($element->xpath('categoryLinks/categoryLink') as $categoryLink) {
             $result->addCategoryLink(CategoryLink::fromXml($categoryLink));
         }
 
@@ -270,14 +289,19 @@ class SelectionEntry implements SelectionEntryInterface
             'type' => $this->type,
 
             // TODO Check which are needed on front side
-            'modifiers' => $this->modifiers,
-            'constraints' => $this->constraints,
             'profiles' => $this->profiles,
-            'info_links' => $this->infoLinks,
             'category_links' => $this->categoryLinks,
             'selection_entry_groups' => $this->selectionEntryGroups,
             'selection_entries' => $this->selectionEntries,
             'costs' => $this->costs,
+
+            // TODO remove this from front, it must be calculated on backend
+            'modifiers' => $this->modifiers,
+            'constraints' => $this->constraints,
+
+            // Non needed because converted to references
+            // 'entry_links' => $this->entryLinks,
+            // 'info_links' => $this->infoLinks,
         ];
     }
 }

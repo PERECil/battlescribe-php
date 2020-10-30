@@ -18,6 +18,12 @@ class EntryLink
     private string $targetId;
     private EntryLinkType $type;
 
+    /** @var Modifier[] */
+    private array $modifiers;
+
+    /** @var CategoryLink[] */
+    private array $categoryLinks;
+
     public function __construct(
         string $id,
         ?string $name,
@@ -35,6 +41,9 @@ class EntryLink
         $this->import = $import;
         $this->targetId = $targetId;
         $this->type = $type;
+
+        $this->modifiers = [];
+        $this->categoryLinks = [];
     }
 
     public function getId(): string
@@ -72,6 +81,28 @@ class EntryLink
         return $this->type;
     }
 
+    /** @return Modifier[] */
+    public function getModifiers(): array
+    {
+        return $this->modifiers;
+    }
+
+    public function addModifier(Modifier $modifier): void
+    {
+        $this->modifiers[] = $modifier;
+    }
+
+    /** @return CategoryLink[] */
+    public function getCategoryLinks(): array
+    {
+        return $this->categoryLinks;
+    }
+
+    public function addCategoryLink(CategoryLink $categoryLink): void
+    {
+        $this->categoryLinks[] = $categoryLink;
+    }
+
     /**
      * @return SelectionEntryGroupReference|SelectionEntryReference
      */
@@ -79,8 +110,8 @@ class EntryLink
     {
         switch($this->type->getValue())
         {
-            case EntryLinkType::SELECTION_ENTRY: return new SelectionEntryReference($this->targetId);
-            case EntryLinkType::SELECTION_ENTRY_GROUP: return new SelectionEntryGroupReference($this->targetId);
+            case EntryLinkType::SELECTION_ENTRY: return new SelectionEntryReference($this, $this->targetId);
+            case EntryLinkType::SELECTION_ENTRY_GROUP: return new SelectionEntryGroupReference($this, $this->targetId);
             default:
                 throw new UnexpectedValueException();
         }
@@ -96,7 +127,7 @@ class EntryLink
             throw new UnexpectedNodeException( 'Received a '.$element->getName().', expected '.self::NAME);
         }
 
-        return new self(
+        $result = new self(
             $element->getAttribute('id')->asString(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
@@ -105,5 +136,15 @@ class EntryLink
             $element->getAttribute('targetId')->asString(),
             $element->getAttribute('type')->asEnum(EntryLinkType::class),
         );
+
+        foreach($element->xpath('modifiers/modifier') as $modifier) {
+            $result->addModifier(Modifier::fromXml($modifier));
+        }
+
+        foreach($element->xpath('categoryLinks/categoryLink') as $categoryLink) {
+            $result->addCategoryLink(CategoryLink::fromXml($categoryLink));
+        }
+
+        return $result;
     }
 }

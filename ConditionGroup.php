@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Battlescribe;
 
+use JsonSerializable;
 use SimpleXMLElement;
 
-class ConditionGroup
+class ConditionGroup implements JsonSerializable
 {
     private ConditionGroupType $type;
 
@@ -22,6 +23,40 @@ class ConditionGroup
 
         $this->conditionGroups = [];
         $this->conditions = [];
+    }
+
+    public function isValid(): bool
+    {
+        switch($this->type) {
+            case ConditionGroupType::AND:
+                $isValid = true;
+
+                foreach($this->conditionGroups as $conditionGroup) {
+                    $isValid = $isValid && $conditionGroup->isValid();
+                }
+
+                foreach($this->conditions as $condition) {
+                    $isValid = $isValid && $condition->isValid();
+                }
+
+                return $isValid;
+
+            case ConditionGroupType::OR:
+                $isValid = false;
+
+                foreach($this->conditionGroups as $conditionGroup) {
+                    $isValid = $isValid || $conditionGroup->isValid();
+                }
+
+                foreach($this->conditions as $condition) {
+                    $isValid = $isValid || $condition->isValid();
+                }
+
+                return $isValid;
+
+            default:
+                throw new \UnexpectedValueException("The condition group type ".$this->type." has not been implemented");
+        }
     }
 
     public function getType(): ConditionGroupType
@@ -58,5 +93,14 @@ class ConditionGroup
         }
 
         return $result;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            'type' => $this->type,
+            'condition_groups' => $this->conditionGroups,
+            'conditions' => $this->conditions,
+        ];
     }
 }

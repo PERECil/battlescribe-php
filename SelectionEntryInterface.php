@@ -30,6 +30,8 @@ interface SelectionEntryInterface extends JsonSerializable
      */
     public function getConstraints(): array;
 
+    public function findConstraint(string $id): ?ConstraintInterface;
+
     /**
      * @return Profile[]
      */

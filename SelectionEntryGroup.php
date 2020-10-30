@@ -190,6 +190,10 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
             'id' => $this->id,
             'name' => $this->name,
             'selection_entries' => $this->selectionEntries,
+            'default_selection_entry_id' => $this->defaultSelectionEntryId,
+
+            // Non needed because converted to references
+            // 'entry_links' => $this->entryLinks,
         ];
     }
 }

@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Battlescribe;
 
+use JsonSerializable;
+use ReflectionProperty;
 use SimpleXMLElement;
+use UnexpectedValueException;
 
-class Modifier
+class Modifier implements JsonSerializable
 {
     private const NAME = 'modifier';
 
     private ModifierType $type;
     private string $field;
     private string $value;
+
+    /** @var Condition[] */
+    private array $conditions;
 
     /** @var ConditionGroup[] */
     private array $conditionGroups;
@@ -23,7 +29,49 @@ class Modifier
         $this->field = $field;
         $this->value = $value;
 
+        $this->conditions = [];
         $this->conditionGroups = [];
+    }
+
+    public function applyTo(SelectionEntryInterface $selectionEntry): void
+    {
+        $isValid = true;
+
+        foreach($this->conditions as $condition) {
+            $isValid = $isValid && $condition->isValid();
+        }
+
+        foreach($this->conditionGroups as $conditionGroup) {
+            $isValid = $isValid && $conditionGroup->isValid();
+        }
+
+        if(!$isValid) {
+            return;
+        }
+
+        switch($this->type) {
+            case ModifierType::SET:
+
+                // Battlescribe seems to store two different things in the "field" field:
+                // - A battlescribe id, that links to a constraint to modify, in this case we need to modify the constraint
+                // - A field name, in this case we need to modify the selection entry value
+                if(Utils::isId($this->field)) {
+                    $constraint = $selectionEntry->findConstraint($this->field);
+
+                    if( $constraint === null ) {
+                        throw new UnexpectedValueException( "Could not find constraint with id ".$this->field );
+                    }
+
+                    $constraint->setValue(floatval($this->value));
+                } else {
+                    $property = new ReflectionProperty($selectionEntry, $this->field);
+                    $property->setAccessible(true);
+                    $property->setValue($selectionEntry, $this->value);
+                }
+                break;
+            default:
+                throw new \UnexpectedValueException("The modifier operation ".$this->type." has not been implemented");
+        }
     }
 
     public function getType(): ModifierType
@@ -39,6 +87,11 @@ class Modifier
     public function getValue(): string
     {
         return $this->value;
+    }
+
+    public function addCondition(Condition $condition): void
+    {
+        $this->conditions[] = $condition;
     }
 
     public function addConditionGroup(ConditionGroup $conditionGroup): void
@@ -62,10 +115,24 @@ class Modifier
             $element->getAttribute('value')->asString()
         );
 
+        foreach($element->xpath('conditions/condition') as $condition) {
+            $result->addCondition(Condition::fromXml($condition));
+        }
+
         foreach($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
             $result->addConditionGroup(ConditionGroup::fromXml($conditionGroup));
         }
 
         return $result;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            'type' => $this->type,
+            'field' => $this->field,
+            'value' => $this->value,
+            'condition_groups' => $this->conditionGroups,
+        ];
     }
 }

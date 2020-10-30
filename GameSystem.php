@@ -237,7 +237,7 @@ class GameSystem
         }
 
         foreach($element->xpath('categoryEntries/categoryEntry') as $categoryEntry) {
-            $result->addCategoryEntry(CategoryEntry::fromXml($categoryEntry));
+            $result->addCategoryEntry(SharedCategoryEntry::fromXml($categoryEntry));
         }
 
         foreach($element->xpath('forceEntries/forceEntry') as $forceEntry) {

@@ -6,6 +6,7 @@ namespace Battlescribe;
 
 use JsonSerializable;
 use SimpleXMLElement;
+use UnexpectedValueException;
 
 class Catalog implements JsonSerializable
 {
@@ -25,8 +26,23 @@ class Catalog implements JsonSerializable
     /** @var CategoryEntry[] */
     private array $categoryEntries;
 
+    /** @var EntryLink[] */
+    private array $entryLinks;
+
     /** @var Rule[] */
     private array $rules;
+
+    /** @var SelectionEntryInterface[] */
+    private array $sharedSelectionEntries;
+
+    /** @var SelectionEntryGroupInterface[] */
+    private array $sharedSelectionEntryGroups;
+
+    /** @var ProfileInterface[] */
+    private array $sharedProfiles;
+
+    /** @var CatalogueLink[] */
+    private array $catalogueLinks;
 
     /** @var SelectionEntryInterface[] */
     private array $selectionEntries;
@@ -36,9 +52,6 @@ class Catalog implements JsonSerializable
 
     /** @var ProfileInterface[] */
     private array $profiles;
-
-    /** @var CatalogueLink[] */
-    private array $catalogueLinks;
 
     public function __construct(
         string $id,
@@ -60,11 +73,20 @@ class Catalog implements JsonSerializable
 
         $this->profileTypes = [];
         $this->categoryEntries = [];
+        $this->entryLinks = [];
         $this->rules = [];
+        $this->sharedSelectionEntries =[];
+        $this->sharedSelectionEntryGroups = [];
+        $this->sharedProfiles = [];
+        $this->catalogueLinks = [];
+
+        // This contains references to the shared selections/groups/entries
+        // that are imported through entry links. Entry links may override
+        // some of the values with modifier, that's why we can't blindly use
+        // the shared items.
         $this->selectionEntries = [];
         $this->selectionEntryGroups = [];
         $this->profiles = [];
-        $this->catalogueLinks = [];
     }
 
     public function getId(): string
@@ -102,33 +124,25 @@ class Catalog implements JsonSerializable
         return $this->gameSystemRevision;
     }
 
-    /**
-     * @return ProfileType[]
-     */
+    /** @return ProfileType[] */
     public function getProfileTypes(): array
     {
         return $this->profileTypes;
     }
 
-    /**
-     * @return CategoryEntry[]
-     */
+    /** @return CategoryEntry[] */
     public function getCategoryEntries(): array
     {
         return $this->categoryEntries;
     }
 
-    /**
-     * @return Rule[]
-     */
+    /** @return Rule[] */
     public function getRules(): array
     {
         return $this->rules;
     }
 
-    /**
-     * @return SelectionEntryInterface[]
-     */
+    /** @return SelectionEntryInterface[] */
     public function getSelectionEntries(): array
     {
         return $this->selectionEntries;
@@ -142,6 +156,21 @@ class Catalog implements JsonSerializable
     public function addCategoryEntry(CategoryEntry $categoryEntry): void
     {
         $this->categoryEntries[] = $categoryEntry;
+    }
+
+    public function addEntryLink(EntryLink $entryLink): void
+    {
+        $this->entryLinks[] = $entryLink;
+
+        $linkedObject = $entryLink->getLinkedObject();
+
+        if($linkedObject instanceof SelectionEntryInterface) {
+            $this->addSelectionEntry($linkedObject);
+        } elseif($linkedObject instanceof SelectionEntryGroupInterface) {
+            $this->addSelectionEntryGroup($linkedObject);
+        } else {
+            throw new UnexpectedValueException();
+        }
     }
 
     public function addRule(Rule $rule): void
@@ -173,6 +202,21 @@ class Catalog implements JsonSerializable
     public function addProfile(ProfileInterface $profile): void
     {
         $this->profiles[] = $profile;
+    }
+
+    public function addSharedSelectionEntry(SelectionEntryInterface $selectionEntry): void
+    {
+        $this->sharedSelectionEntries[] = $selectionEntry;
+    }
+
+    public function addSharedSelectionEntryGroup(SelectionEntryGroupInterface $selectionEntryGroup): void
+    {
+        $this->sharedSelectionEntryGroups[] = $selectionEntryGroup;
+    }
+
+    public function addSharedProfile(ProfileInterface $profile): void
+    {
+        $this->sharedProfiles[] = $profile;
     }
 
     public function addCatalogueLink(CatalogueLink $catalogueLink): void
@@ -218,7 +262,11 @@ class Catalog implements JsonSerializable
         }
 
         foreach($element->xpath('categoryEntries/categoryEntry') as $categoryEntry) {
-            $result->addCategoryEntry(CategoryEntry::fromXml($categoryEntry));
+            $result->addCategoryEntry(SharedCategoryEntry::fromXml($categoryEntry));
+        }
+
+        foreach($element->xpath('entryLinks/entryLink') as $entryLink) {
+            $result->addEntryLink(EntryLink::fromXml($entryLink));
         }
 
         foreach($element->xpath('rules/rule') as $rule) {
@@ -226,15 +274,15 @@ class Catalog implements JsonSerializable
         }
 
         foreach($element->xpath('sharedSelectionEntries/selectionEntry') as $selectionEntry) {
-            $result->addSelectionEntry(SharedSelectionEntry::fromXml($selectionEntry));
+            $result->addSharedSelectionEntry(SharedSelectionEntry::fromXml($selectionEntry));
         }
 
         foreach($element->xpath('sharedSelectionEntryGroups/selectionEntryGroup') as $selectionEntryGroup) {
-            $result->addSelectionEntryGroup(SharedSelectionEntryGroup::fromXml($selectionEntryGroup));
+            $result->addSharedSelectionEntryGroup(SharedSelectionEntryGroup::fromXml($selectionEntryGroup));
         }
 
         foreach($element->xpath('sharedProfiles/profile') as $profile) {
-            $result->addProfile(SharedProfile::fromXml($profile));
+            $result->addSharedProfile(SharedProfile::fromXml($profile));
         }
 
         foreach($element->xpath('catalogueLinks/catalogueLink') as $catalogueLink) {

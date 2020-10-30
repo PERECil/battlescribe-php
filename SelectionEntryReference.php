@@ -6,16 +6,18 @@ namespace Battlescribe;
 
 class SelectionEntryReference implements SelectionEntryInterface
 {
+    private EntryLink $entryLink;
     private string $targetId;
 
-    public function __construct(string $targetId)
+    public function __construct(EntryLink $entryLink, string $targetId)
     {
+        $this->entryLink = $entryLink;
         $this->targetId = $targetId;
     }
 
     public function getId(): string
     {
-        return $this->targetId;
+        return $this->entryLink->getId();
     }
 
     public function getName(): string
@@ -45,12 +47,18 @@ class SelectionEntryReference implements SelectionEntryInterface
 
     public function getModifiers(): array
     {
-        return SharedSelectionEntry::get($this->targetId)->getModifiers();
+        // The entry link can override and add modifiers to the selection entry
+        return array_merge( SharedSelectionEntry::get($this->targetId)->getModifiers(), $this->entryLink->getModifiers() );
     }
 
     public function getConstraints(): array
     {
         return SharedSelectionEntry::get($this->targetId)->getConstraints();
+    }
+
+    public function findConstraint(string $id): ?Constraint
+    {
+        return SharedSelectionEntry::get($this->targetId)->findConstraint($id);
     }
 
     public function getProfiles(): array
@@ -65,7 +73,8 @@ class SelectionEntryReference implements SelectionEntryInterface
 
     public function getCategoryLinks(): array
     {
-        return SharedSelectionEntry::get($this->targetId)->getCategoryLinks();
+        // The entry link can override and add category links to the selection entry
+        return array_merge( SharedSelectionEntry::get($this->targetId)->getCategoryLinks(), $this->entryLink->getCategoryLinks() );
     }
 
     public function getSelectionEntryGroups(): array
@@ -93,6 +102,23 @@ class SelectionEntryReference implements SelectionEntryInterface
      */
     public function jsonSerialize(): array
     {
-        return SharedSelectionEntry::get($this->targetId)->jsonSerialize();
+         return [
+            'id' => $this->getId(),
+            'name' => $this->getName(),
+            'type' => $this->getType(),
+
+            // TODO Check which are needed on front side
+            'modifiers' => $this->getModifiers(),
+            'constraints' => $this->getConstraints(),
+            'profiles' => $this->getProfiles(),
+            'category_links' => $this->getCategoryLinks(),
+            'selection_entry_groups' => $this->getSelectionEntryGroups(),
+            'selection_entries' => $this->getSelectionEntries(),
+            'costs' => $this->getCosts(),
+
+            // Non needed because converted to references
+            // 'entry_links' => $this->entryLinks,
+            // 'info_links' => $this->infoLinks,
+        ];
     }
 }

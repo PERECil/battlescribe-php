@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Battlescribe;
 
+use JsonSerializable;
 use SimpleXMLElement;
 
-class Condition
+class Condition implements JsonSerializable
 {
     private const NAME = 'condition';
 
@@ -41,6 +42,12 @@ class Condition
         $this->includeChildForces = $includeChildForces;
         $this->childId = $childId;
         $this->conditionType = $conditionType;
+    }
+
+    public function isValid(): bool
+    {
+        // TODO
+        return true;
     }
 
     public function getField(): string
@@ -109,5 +116,20 @@ class Condition
             $element->getAttribute('childId')->asString(),
             $element->getAttribute('type')->asEnum(ConditionType::class),
         );
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            'field' => $this->field,
+            'scope' => $this->scope,
+            'value' => $this->value,
+            'percent_value' => $this->percentValue,
+            'shared' => $this->shared,
+            'include_child_selections' => $this->includeChildSelections,
+            'include_child_forces' => $this->includeChildForces,
+            'child_id' => $this->childId,
+            'condition_type' => $this->conditionType,
+        ];
     }
 }

@@ -47,7 +47,7 @@ class ProfileType
             throw new UnexpectedNodeException( 'Received a '.$element->getName().', expected '.self::NAME);
         }
 
-        $result = new self(
+        $result = new static(
             $element->getAttribute('id')->asString(),
             $element->getAttribute('name')->asString()
         );
