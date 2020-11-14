@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<dataIndex battleScribeVersion="2.03" name="Warhammer 40,000: Kill Team (2018)" xmlns="http://www.battlescribe.net/schema/dataIndexSchema">
+  <dataIndexEntries>
+    <dataIndexEntry filePath="Warhammer.40.000.Kill.Team.gst" dataType="gamesystem" dataId="a467-5f42-d24c-6e5b" dataName="Warhammer 40,000: Kill Team (2018)" dataBattleScribeVersion="2.03" dataRevision="40"/>
+    <dataIndexEntry filePath="Gellerpox.Infected.cat" dataType="catalogue" dataId="b850-8976-bc1a-d579" dataName="Gellerpox Infected" dataBattleScribeVersion="2.03" dataRevision="2"/>
+    <dataIndexEntry filePath="Astra.Militarum.cat" dataType="catalogue" dataId="4c51-0669-1f79-d8aa" dataName="Astra Militarum" dataBattleScribeVersion="2.03" dataRevision="27"/>
+    <dataIndexEntry filePath="Tyranids.cat" dataType="catalogue" dataId="a8de-fa3a-9163-0c20" dataName="Tyranids" dataBattleScribeVersion="2.03" dataRevision="17"/>
+    <dataIndexEntry filePath="Grey.Knights.cat" dataType="catalogue" dataId="af25-b676-5b53-c0dd" dataName="Grey Knights" dataBattleScribeVersion="2.03" dataRevision="21"/>
+    <dataIndexEntry filePath="Thousand.Sons.cat" dataType="catalogue" dataId="7e0e-5010-f3b4-dc1d" dataName="Thousand Sons" dataBattleScribeVersion="2.03" dataRevision="12"/>
+    <dataIndexEntry filePath="Servants.of.the.Abyss.cat" dataType="catalogue" dataId="2321-ee3c-7ef0-5c40" dataName="Servants of the Abyss" dataBattleScribeVersion="2.03" dataRevision="9"/>
+    <dataIndexEntry filePath="Elucidian.Starstriders.cat" dataType="catalogue" dataId="fbb3-685c-8a71-89ff" dataName="Elucidian Starstriders" dataBattleScribeVersion="2.03" dataRevision="3"/>
+    <dataIndexEntry filePath="Adeptus.Astartes.cat" dataType="catalogue" dataId="6112-edb9-977c-198e" dataName="Adeptus Astartes" dataBattleScribeVersion="2.03" dataRevision="32"/>
+    <dataIndexEntry filePath="Adepta.Sororitas.cat" dataType="catalogue" dataId="aff2-95a5-3b50-cc8f" dataName="Adepta Sororitas" dataBattleScribeVersion="2.03" dataRevision="7"/>
+    <dataIndexEntry filePath="Deathwatch.cat" dataType="catalogue" dataId="7548-75cf-ab24-7e9c" dataName="Deathwatch" dataBattleScribeVersion="2.03" dataRevision="21"/>
+    <dataIndexEntry filePath="Chaos.Daemons.cat" dataType="catalogue" dataId="0737-c237-2604-a08c" dataName="Chaos Daemons" dataBattleScribeVersion="2.03" dataRevision="5"/>
+    <dataIndexEntry filePath="Orks.cat" dataType="catalogue" dataId="a34e-d16c-80ff-06bf" dataName="Orks" dataBattleScribeVersion="2.03" dataRevision="29"/>
+    <dataIndexEntry filePath="Adeptus.Custodes.cat" dataType="catalogue" dataId="419c-04e4-1bb5-3f36" dataName="Adeptus Custodes" dataBattleScribeVersion="2.03" dataRevision="6"/>
+    <dataIndexEntry filePath="Necrons.cat" dataType="catalogue" dataId="d1bc-0b71-2f3d-71eb" dataName="Necrons" dataBattleScribeVersion="2.03" dataRevision="16"/>
+    <dataIndexEntry filePath="Space.Marines.cat" dataType="catalogue" dataId="fce0-30e5-a4fc-8736" dataName="Space Marines" dataBattleScribeVersion="2.03" dataRevision="26"/>
+    <dataIndexEntry filePath="Kroot.cat" dataType="catalogue" dataId="26db-d625-117a-0eba" dataName="Kroot" dataBattleScribeVersion="2.03" dataRevision="8"/>
+    <dataIndexEntry filePath="T.au.Empire.cat" dataType="catalogue" dataId="7ac4-f90b-e0a6-ae72" dataName="T&apos;au Empire" dataBattleScribeVersion="2.03" dataRevision="22"/>
+    <dataIndexEntry filePath="Drukhari.cat" dataType="catalogue" dataId="3591-2aa0-250c-ddeb" dataName="Drukhari" dataBattleScribeVersion="2.03" dataRevision="19"/>
+    <dataIndexEntry filePath="Death.Guard.cat" dataType="catalogue" dataId="369f-8d9a-1b69-00dc" dataName="Death Guard" dataBattleScribeVersion="2.03" dataRevision="14"/>
+    <dataIndexEntry filePath="Asuryani.cat" dataType="catalogue" dataId="a796-a947-905e-205c" dataName="Asuryani" dataBattleScribeVersion="2.03" dataRevision="26"/>
+    <dataIndexEntry filePath="Adeptus.Mechanicus.cat" dataType="catalogue" dataId="ff2c-d2cf-bc85-3c79" dataName="Adeptus Mechanicus" dataBattleScribeVersion="2.03" dataRevision="23"/>
+    <dataIndexEntry filePath="Unaligned.cat" dataType="catalogue" dataId="ed39-8a3f-2bfd-54d1" dataName="Unaligned" dataBattleScribeVersion="2.03" dataRevision="1"/>
+    <dataIndexEntry filePath="Sisters.of.Silence.cat" dataType="catalogue" dataId="172b-ef0f-f86e-1837" dataName="Sisters of Silence" dataBattleScribeVersion="2.03" dataRevision="3"/>
+    <dataIndexEntry filePath="Genestealer.Cults.cat" dataType="catalogue" dataId="5479-cc66-3156-2e54" dataName="Genestealer Cults" dataBattleScribeVersion="2.03" dataRevision="17"/>
+    <dataIndexEntry filePath="Heretic.Astartes.cat" dataType="catalogue" dataId="ecac-e836-08ce-c0aa" dataName="Heretic Astartes" dataBattleScribeVersion="2.03" dataRevision="17"/>
+    <dataIndexEntry filePath="Harlequins.cat" dataType="catalogue" dataId="8f3b-d6fd-0ad8-06f2" dataName="Harlequins" dataBattleScribeVersion="2.03" dataRevision="11"/>
+  </dataIndexEntries>
+</dataIndex>
