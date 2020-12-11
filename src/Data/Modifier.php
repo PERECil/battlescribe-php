@@ -39,7 +39,7 @@ class Modifier
 
     /**
      * @param SelectionEntryInterface[] $selectionEntries
-     * @param SelectionEntryInterface $selectionEntry
+     * @param ModifiableInterface $selectionEntry
      */
     public function applyTo(array $selectionEntries, ModifiableInterface $selectionEntry): void
     {

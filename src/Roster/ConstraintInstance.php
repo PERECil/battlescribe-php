@@ -12,10 +12,17 @@ class ConstraintInstance implements ConstraintInterface
     private ?float $valueOverride = null;
 
     private ConstraintInterface $implementation;
+    private string $instanceId;
 
     public function __construct(ConstraintInterface $implementation)
     {
         $this->implementation = $implementation;
+        $this->instanceId = spl_object_hash($this);
+    }
+
+    public function getInstanceId(): string
+    {
+        return $this->instanceId;
     }
 
     public function setValue(?float $value): void

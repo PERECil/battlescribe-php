@@ -6,6 +6,7 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
+use Closure;
 
 class Constraint implements ConstraintInterface
 {
@@ -20,6 +21,9 @@ class Constraint implements ConstraintInterface
     private bool $includeChildSelections;
     private bool $includeChildForces;
     private ConstraintType $type;
+
+    /** @var Condition[] */
+    private array $conditions;
 
     /** @var ConditionGroup[] */
     private array $conditionGroups;
@@ -46,7 +50,31 @@ class Constraint implements ConstraintInterface
         $this->includeChildForces = $includeChildForces;
         $this->type = $type;
 
+        $this->conditions = [];
         $this->conditionGroups = [];
+    }
+
+    public function applyTo(array $selectionEntries, ModifiableInterface $selectionEntry): void
+    {
+        $isValid = true;
+
+        foreach($this->conditions as $condition) {
+            $isValid = $isValid && $condition->isValid($selectionEntries, $selectionEntry);
+        }
+
+        foreach($this->conditionGroups as $conditionGroup) {
+            $isValid = $isValid && $conditionGroup->isValid($selectionEntries, $selectionEntry);
+        }
+
+        if($isValid) {
+            if(ConstraintType::MIN()->equals($this->getType())) {
+                $selectionEntry->setMinimumSelectedCount((int)$this->value);
+            }
+
+            if(ConstraintType::MAX()->equals($this->getType())) {
+                $selectionEntry->setMaximumSelectedCount((int)$this->value);
+            }
+        }
     }
 
     public function getId(): string
@@ -95,6 +123,19 @@ class Constraint implements ConstraintInterface
     }
 
     /**
+     * @return Condition[]
+     */
+    public function getConditions(): array
+    {
+        return $this->conditions;
+    }
+
+    public function addCondition(Condition $condition): void
+    {
+        $this->conditions[] = $condition;
+    }
+
+    /**
      * @return ConditionGroup[]
      */
     public function getConditionGroups(): array
@@ -128,6 +169,10 @@ class Constraint implements ConstraintInterface
             $element->getAttribute('includeChildForces')->asBoolean(),
             $element->getAttribute('type')->asEnum(ConstraintType::class)
         );
+
+        foreach($element->xpath('conditions/condition') as $condition) {
+            $result->addCondition(Condition::fromXml($condition));
+        }
 
         foreach($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
             $result->addConditionGroup(ConditionGroup::fromXml($conditionGroup));

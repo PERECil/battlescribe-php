@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Battlescribe\Roster;
 
+use Battlescribe\Data\ConstraintType;
 use Battlescribe\Data\SelectionEntryGroupInterface;
 use Battlescribe\Data\SelectionEntryInterface;
 use Battlescribe\Data\SelectionEntryType;
@@ -32,6 +33,10 @@ class SelectionEntryInstance implements SelectionEntryInterface
 
     /** @var CostInstance[] */
     private array $costs;
+
+    private int $selectedCount;
+    private ?int $minimumSelectedCount;
+    private ?int $maximumSelectedCount;
 
     public function __construct(TreeInterface $parent, SelectionEntryInterface $implementation)
     {
@@ -67,6 +72,16 @@ class SelectionEntryInstance implements SelectionEntryInterface
         foreach($this->implementation->getConstraints() as $constraint) {
             $this->constraints[] = new ConstraintInstance($constraint);
         }
+
+        // If there is a selection entry group as a parent, the item is selected only if it's the default selection
+        if($this->parent instanceof SelectionEntryGroupInterface) {
+            $this->selectedCount = $this->parent->getDefaultSelectionEntryId() === $this->implementation->getSharedId() ? 1 : 0;
+        } else {
+            $this->selectedCount = 1;
+        }
+
+        $this->minimumSelectedCount = null;
+        $this->maximumSelectedCount = null;
     }
 
     /**
@@ -74,6 +89,10 @@ class SelectionEntryInstance implements SelectionEntryInterface
      */
     public function computeState(array $selectionEntries): void
     {
+        foreach($this->implementation->getConstraints() as $constraint) {
+            $constraint->applyTo($selectionEntries, $this);
+        }
+
         foreach($this->implementation->getModifiers() as $modifier) {
             $modifier->applyTo($selectionEntries, $this);
         }
@@ -128,6 +147,36 @@ class SelectionEntryInstance implements SelectionEntryInterface
     public function getRoot(): TreeInterface
     {
         return $this->getParent()->getRoot();
+    }
+
+    public function setSelectedCount(int $selectedCount): void
+    {
+        $this->selectedCount = $selectedCount;
+    }
+
+    public function getSelectedCount(): int
+    {
+        return $this->selectedCount;
+    }
+
+    public function setMinimumSelectedCount(int $minimumSelectedCount): void
+    {
+        $this->minimumSelectedCount = $minimumSelectedCount;
+    }
+
+    public function getMinimumSelectedCount(): ?int
+    {
+        return $this->minimumSelectedCount;
+    }
+
+    public function setMaximumSelectedCount(int $maximumSelectedCount): void
+    {
+        $this->maximumSelectedCount = $maximumSelectedCount;
+    }
+
+    public function getMaximumSelectedCount(): ?int
+    {
+        return $this->maximumSelectedCount;
     }
 
     public function findSelectionEntryByMatcher(Closure $matcher): array

@@ -52,6 +52,8 @@ class RosterTest extends TestCase
         Assert::assertNotNull($listConfiguration);
         Assert::assertCount(1, $listConfiguration);
         Assert::assertSame('Matched Play: Kill Team', $listConfiguration[0]->getSelectionEntryGroups()[0]->getSelectedEntry()->getName());
+
+        Assert::assertSame( 1, $listConfiguration[0]->getSelectedCount());
     }
 
     public function testInitialRosterShouldHaveResourcesHidden(): void
@@ -80,5 +82,16 @@ class RosterTest extends TestCase
         Assert::assertNotNull($resources);
         Assert::assertCount(1, $resources);
         Assert::assertFalse($resources[0]->isHidden());
+
+        Assert::assertSame( null, $resources[0]->getMinimumSelectedCount());
+        Assert::assertSame( 1, $resources[0]->getMaximumSelectedCount());
+        Assert::assertSame( 1, $resources[0]->getSelectedCount());
+
+        // Ensure that 0 resource is selected, the min is 0 and there is no maximum
+        foreach($resources[0]->getSelectionEntries() as $selectionEntry) {
+            Assert::assertSame(0, $selectionEntry->getMinimumSelectedCount());
+            Assert::assertSame(null, $selectionEntry->getMaximumSelectedCount());
+            Assert::assertSame(0, $selectionEntry->getSelectedCount());
+        }
     }
 }
