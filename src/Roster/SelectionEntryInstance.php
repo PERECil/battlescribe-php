@@ -34,6 +34,9 @@ class SelectionEntryInstance implements SelectionEntryInterface
     /** @var CostInstance[] */
     private array $costs;
 
+    /** @var ErrorInterface[] */
+    private array $errors;
+
     private int $selectedCount;
     private ?int $minimumSelectedCount;
     private ?int $maximumSelectedCount;
@@ -82,6 +85,13 @@ class SelectionEntryInstance implements SelectionEntryInterface
 
         $this->minimumSelectedCount = null;
         $this->maximumSelectedCount = null;
+
+        $this->errors = [];
+    }
+
+    public function addError(ErrorInterface $error): void
+    {
+        $this->errors[] = $error;
     }
 
     /**
@@ -89,7 +99,7 @@ class SelectionEntryInstance implements SelectionEntryInterface
      */
     public function computeState(array $selectionEntries): void
     {
-        foreach($this->implementation->getConstraints() as $constraint) {
+        foreach($this->getConstraints() as $constraint) {
             $constraint->applyTo($selectionEntries, $this);
         }
 
@@ -253,15 +263,6 @@ class SelectionEntryInstance implements SelectionEntryInterface
     public function isImport(): bool
     {
         return $this->implementation->isImport();
-    }
-
-    public function isSelected(): bool
-    {
-        if($this->parent instanceof SelectionEntryGroupInstance) {
-            return $this->parent->getSelectedEntry() === $this;
-        }
-
-        return false;
     }
 
     public function getType(): SelectionEntryType

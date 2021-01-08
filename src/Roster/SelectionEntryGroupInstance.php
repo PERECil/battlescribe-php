@@ -14,7 +14,6 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
 {
     private TreeInterface $parent;
     private string $instanceId;
-    private ?string $selectedInstanceId;
     private SelectionEntryGroupInterface $implementation;
     private ?bool $hiddenOverride;
 
@@ -31,7 +30,6 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
     {
         $this->parent = $parent;
         $this->instanceId = spl_object_hash($this);
-        $this->selectedInstanceId = null;
         $this->implementation = $implementation;
         $this->hiddenOverride = null;
 
@@ -44,7 +42,9 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
             $this->selectionEntries[] = $instance;
 
             if($selectionEntry->getId() === $this->getDefaultSelectionEntryId()) {
-                $this->selectedInstanceId = $instance->getInstanceId();
+                $instance->setSelectedCount(1);
+            } else {
+                $instance->setSelectedCount(0);
             }
         }
 
@@ -56,9 +56,13 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
 
             $this->selectionEntryGroups[] = $instance;
 
+            /* Not sure if used
             if($selectionEntryGroup->getId() === $this->getDefaultSelectionEntryId()) {
-                $this->selectedInstanceId = $instance->getInstanceId();
+                $instance->setSelectedCount(1);
+            } else {
+                $instance->setSelectedCount(0);
             }
+            */
         }
 
         // Needs to have instances because modifiers can modify constraints
@@ -99,30 +103,24 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         return $this->implementation->getSharedId();
     }
 
-    public function getSelectedEntryId(): ?string
-    {
-        $selectedEntry = $this->getSelectedEntry();
-
-        if($selectedEntry !== null ) {
-            return $selectedEntry->getId();
-        }
-
-        return null;
-    }
-
     public function setSelectedInstanceId(string $instanceId): void
     {
+        $found = false;
+
         foreach($this->selectionEntries as $selectionEntry) {
             if($selectionEntry->getInstanceId() === $instanceId) {
-                $this->selectedInstanceId = $instanceId;
-
-                $this->getRoot()->computeState();
-
-                return;
+                $selectionEntry->setSelectedCount(1);
+                $found = true;
+            } else {
+                $selectionEntry->setSelectedCount(0);
             }
         }
 
-        throw new UnexpectedValueException("Instance id not found");
+        if($found) {
+            $this->getRoot()->computeState();
+        } else {
+            throw new UnexpectedValueException("Instance id not found");
+        }
     }
 
     public function getRoot(): TreeInterface
@@ -147,21 +145,6 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         }
 
         return $result;
-    }
-
-    public function getSelectedEntry(): ?SelectionEntryInstance
-    {
-        if($this->selectedInstanceId === null) {
-            return null;
-        }
-
-        foreach($this->selectionEntries as $selectionEntry) {
-            if($selectionEntry->getInstanceId() === $this->selectedInstanceId) {
-                return $selectionEntry;
-            }
-        }
-
-        throw new UnexpectedValueException('No selection entry instance found with instance id of '.$this->selectedInstanceId);
     }
 
     public function findSelectionEntryGroupByInstanceId(string $instanceId): ?SelectionEntryGroupInstance

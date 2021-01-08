@@ -67,11 +67,6 @@ class SelectionEntryReference implements SelectionEntryInterface
         return SharedSelectionEntry::get($this->targetId)->isImport();
     }
 
-    public function isSelected(): bool
-    {
-        return SharedSelectionEntry::get($this->targetId)->isSelected();
-    }
-
     public function getType(): SelectionEntryType
     {
         return SharedSelectionEntry::get($this->targetId)->getType();

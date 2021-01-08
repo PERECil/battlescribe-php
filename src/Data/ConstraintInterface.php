@@ -25,6 +25,11 @@ interface ConstraintInterface
     public function getType(): ConstraintType;
 
     /**
+     * @return Condition[]
+     */
+    public function getConditions(): array;
+
+    /**
      * @return ConditionGroup[]
      */
     public function getConditionGroups(): array;

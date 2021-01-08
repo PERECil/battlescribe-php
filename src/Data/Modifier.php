@@ -45,45 +45,64 @@ class Modifier
     {
         $isValid = true;
 
-        foreach($this->conditions as $condition) {
+        foreach ($this->conditions as $condition) {
             $isValid = $isValid && $condition->isValid($selectionEntries, $selectionEntry);
         }
 
-        foreach($this->conditionGroups as $conditionGroup) {
+        foreach ($this->conditionGroups as $conditionGroup) {
             $isValid = $isValid && $conditionGroup->isValid($selectionEntries, $selectionEntry);
         }
 
-        switch($this->type) {
+        switch ($this->type) {
             case ModifierType::SET:
 
                 // Battlescribe seems to store two different things in the "field" field:
                 // - A battlescribe id, that links to a constraint to modify, in this case we need to modify the constraint
                 // - A battlescribe id, that links to a cost to modify, in this case we need to modify the cost ?
                 // - A field name, in this case we need to modify the selection entry value
-                if(Utils::isId($this->field)) {
+                if (Utils::isId($this->field)) {
 
-                    if( ($constraint = $selectionEntry->findConstraint($this->field)) !== null ) {
+                    if (($constraint = $selectionEntry->findConstraint($this->field)) !== null) {
                         $constraint->setValue($isValid ? floatval($this->value) : null);
-                    } elseif( ($cost = $selectionEntry->findCost($this->field)) !== null ) {
+                    } elseif (($cost = $selectionEntry->findCost($this->field)) !== null) {
                         $cost->setValue($isValid ? floatval($this->value) : null);
                     } else {
-                        throw new UnexpectedValueException( "Could not find constraint with id ".$this->field );
+                        throw new UnexpectedValueException("Could not find constraint with id " . $this->field);
                     }
 
 
                 } else {
 
-                    if($this->field === 'hidden') {
-                        $selectionEntry->setHidden($isValid ? ( $this->value === 'true' ? true : false ) : null );
-                    } elseif($this->field === 'name') {
+                    if ($this->field === 'hidden') {
+                        $selectionEntry->setHidden($isValid ? ($this->value === 'true' ? true : false) : null);
+                    } elseif ($this->field === 'name') {
                         $selectionEntry->setName($isValid ? $this->value : null);
                     } else {
-                        throw new UnexpectedValueException("The modifier operation on field ".$this->field." has not been implemented");
+                        throw new UnexpectedValueException("The modifier operation on field " . $this->field . " has not been implemented");
                     }
                 }
                 break;
+            case ModifierType::INCREMENT:
+
+                if (Utils::isId($this->field)) {
+
+                    if (($constraint = $selectionEntry->findConstraint($this->field)) !== null) {
+                        $constraint->setValue($isValid ? floatval($this->value) + $constraint->getValue() : null);
+                    } elseif (($cost = $selectionEntry->findCost($this->field)) !== null) {
+                        $cost->setValue($isValid ? floatval($this->value) + $cost->getValue() : null);
+                    } else {
+                        throw new UnexpectedValueException("Could not find constraint with id " . $this->field);
+                    }
+
+
+                } else {
+
+                    throw new UnexpectedValueException("The modifier operation on field " . $this->field . " has not been implemented");
+                }
+
+                break;
             default:
-                throw new UnexpectedValueException("The modifier operation ".$this->type." has not been implemented");
+                throw new UnexpectedValueException("The modifier operation " . $this->type . " has not been implemented");
         }
     }
 
@@ -114,12 +133,12 @@ class Modifier
 
     public static function fromXml(?SimpleXMLElementFacade $element): ?self
     {
-        if($element === null) {
+        if ($element === null) {
             return null;
         }
 
-        if($element->getName() !== self::NAME) {
-            throw new UnexpectedNodeException( 'Received a '.$element->getName().', expected '.self::NAME);
+        if ($element->getName() !== self::NAME) {
+            throw new UnexpectedNodeException('Received a ' . $element->getName() . ', expected ' . self::NAME);
         }
 
         $result = new self(
@@ -128,11 +147,11 @@ class Modifier
             $element->getAttribute('value')->asString()
         );
 
-        foreach($element->xpath('conditions/condition') as $condition) {
+        foreach ($element->xpath('conditions/condition') as $condition) {
             $result->addCondition(Condition::fromXml($condition));
         }
 
-        foreach($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
+        foreach ($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
             $result->addConditionGroup(ConditionGroup::fromXml($conditionGroup));
         }
 

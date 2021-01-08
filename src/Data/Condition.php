@@ -59,7 +59,7 @@ class Condition
             $selectionEntries = $entry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $selectionEntry) {
                 foreach($selectionEntry->getCategoryEntries() as $categoryEntry) {
                     if($categoryEntry->getSharedId() === $this->childId) {
-                        return $selectionEntry->isSelected();
+                        return $selectionEntry->getSelectedCount() > 0;
                     }
                 }
 
@@ -173,28 +173,58 @@ class Condition
         throw new UnexpectedValueException( "Unhandled condition state on field ".$this->field." with scope ".$this->scope." for child ".$this->childId );
     }
 
-    public static function countSelections(ModifiableInterface $entry, string $id): int
+    /**
+     * @param SelectionEntryInterface[] $entry
+     * @param string $childId
+     * @return int
+     */
+    public static function countSelections(array $entries, string $childId): int
     {
         $selections = 0;
 
+        foreach($entries as $entry) {
+
+            // Locate the child id in the scope
+            $elements = $entry->findSelectionEntryByMatcher(function(SelectionEntryInterface $element) use($childId): bool {
+                return $element->getSharedId() === $childId;
+            });
+
+            foreach($elements as $element) {
+                $selections += $entry->getSelectedCount();
+            }
+        }
+
+        /*
         if($entry->getSelectedEntryId() === $id) {
-            $selections += 1;
+            $selections += $entry->getSelectedCount();
         }
 
         foreach($entry->getChildren() as $child) {
             $selections += self::countSelections($child, $id);
         }
+        */
 
         return $selections;
     }
 
-    public static function findFrom(ModifiableInterface $entry, string $scope): ?SelectionEntryInterface
+    /**
+     * @param ModifiableInterface $entry
+     * @param string $scope
+     * @return SelectionEntryInterface[]
+     */
+    public static function findFrom(ModifiableInterface $entry, string $scope): array
     {
+        return $entry->getRoot()->findSelectionEntryByMatcher( function( SelectionEntryInterface $entry) use($scope): bool {
+            return $entry->getSharedId() === $scope;
+        });
+
+        /*
         do {
             $entry = $entry->getParent();
         } while($entry !== null && ($entry->getSharedId() !== $scope));
 
         return $entry;
+        */
 
         /*
         if($entry->getId() === $scope) {

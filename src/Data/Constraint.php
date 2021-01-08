@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Battlescribe\Roster\ConstraintError;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use Closure;
@@ -52,29 +53,6 @@ class Constraint implements ConstraintInterface
 
         $this->conditions = [];
         $this->conditionGroups = [];
-    }
-
-    public function applyTo(array $selectionEntries, ModifiableInterface $selectionEntry): void
-    {
-        $isValid = true;
-
-        foreach($this->conditions as $condition) {
-            $isValid = $isValid && $condition->isValid($selectionEntries, $selectionEntry);
-        }
-
-        foreach($this->conditionGroups as $conditionGroup) {
-            $isValid = $isValid && $conditionGroup->isValid($selectionEntries, $selectionEntry);
-        }
-
-        if($isValid) {
-            if(ConstraintType::MIN()->equals($this->getType())) {
-                $selectionEntry->setMinimumSelectedCount((int)$this->value);
-            }
-
-            if(ConstraintType::MAX()->equals($this->getType())) {
-                $selectionEntry->setMaximumSelectedCount((int)$this->value);
-            }
-        }
     }
 
     public function getId(): string

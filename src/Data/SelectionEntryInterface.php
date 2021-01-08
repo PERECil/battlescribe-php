@@ -12,8 +12,6 @@ interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, Hi
 
     public function isImport(): bool;
 
-    public function isSelected(): bool;
-
     public function getType(): SelectionEntryType;
 
     /** @return Modifier[] */
@@ -49,6 +47,4 @@ interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, Hi
 
     /** @return CategoryEntryInterface[] */
     public function getCategoryEntries(): array;
-
-
 }

@@ -167,15 +167,6 @@ class SelectionEntry implements SelectionEntryInterface
         return $this->import;
     }
 
-    public function isSelected(): bool
-    {
-        if($this->parent instanceof SelectionEntryGroupInterface) {
-            return $this->parent->getDefaultSelectionEntryId() === $this->getSharedId();
-        }
-
-        return false;
-    }
-
     public function getType(): SelectionEntryType
     {
         return $this->type;

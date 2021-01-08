@@ -6,6 +6,8 @@ namespace Battlescribe\Roster;
 
 use Battlescribe\Data\ConstraintInterface;
 use Battlescribe\Data\ConstraintType;
+use Battlescribe\Data\ModifiableInterface;
+use Battlescribe\Data\SelectionEntryInterface;
 
 class ConstraintInstance implements ConstraintInterface
 {
@@ -18,6 +20,71 @@ class ConstraintInstance implements ConstraintInterface
     {
         $this->implementation = $implementation;
         $this->instanceId = spl_object_hash($this);
+    }
+
+    public function applyTo(array $selectionEntries, ModifiableInterface $selectionEntry): void
+    {
+        $isValid = true;
+
+        foreach($this->getConditions() as $condition) {
+            $isValid = $isValid && $condition->isValid($selectionEntries, $selectionEntry);
+        }
+
+        foreach($this->getConditionGroups() as $conditionGroup) {
+            $isValid = $isValid && $conditionGroup->isValid($selectionEntries, $selectionEntry);
+        }
+
+        if($isValid) {
+            if(ConstraintType::MIN()->equals($this->getType())) {
+                $selectionEntry->setMinimumSelectedCount((int)$this->getValue());
+
+                switch($this->getScope()) {
+                    case 'force':
+                        $entries = $selectionEntry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $e) use($selectionEntry) { return $selectionEntry->getSharedId() === $e->getSharedId();});
+
+                        $totalSelectedCount = array_reduce($entries, function(SelectionEntryInterface $e) { return $e->getSelectedCount(); }, 0);
+
+                        if($totalSelectedCount < $selectionEntry->getMinimumSelectedCount()) {
+                            $selectionEntry->addError(new ConstraintError($this));
+                        }
+
+                        break;
+                    case 'parent':
+                        if($selectionEntry->getSelectedCount() < $selectionEntry->getMinimumSelectedCount()) {
+                            $selectionEntry->addError(new ConstraintError($this));
+                        }
+
+                        break;
+                    default:
+                        throw new \UnexpectedValueException('Scope '.$this->scope.' not handled in constraint' );
+                }
+            }
+
+            if(ConstraintType::MAX()->equals($this->getType())) {
+                $selectionEntry->setMaximumSelectedCount((int)$this->getValue());
+
+                switch($this->implementation->getScope()) {
+                    case 'force':
+                        $entries = $selectionEntry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $e) use($selectionEntry) { return $selectionEntry->getSharedId() === $e->getSharedId();});
+
+                        $totalSelectedCount = array_reduce($entries, function(int $carry, SelectionEntryInterface $e) { return $carry + $e->getSelectedCount(); }, 0);
+
+                        if($totalSelectedCount < $selectionEntry->getMaximumSelectedCount()) {
+                            $selectionEntry->addError(new ConstraintError($this));
+                        }
+
+                        break;
+                    case 'parent':
+                        if($selectionEntry->getSelectedCount() < $selectionEntry->getMaximumSelectedCount()) {
+                            $selectionEntry->addError(new ConstraintError($this));
+                        }
+
+                        break;
+                    default:
+                        throw new \UnexpectedValueException('Scope '.$this->getScope().' not handled in constraint' );
+                }
+            }
+        }
     }
 
     public function getInstanceId(): string
@@ -73,6 +140,11 @@ class ConstraintInstance implements ConstraintInterface
     public function getType(): ConstraintType
     {
         return $this->implementation->getType();
+    }
+
+    public function getConditions(): array
+    {
+        return $this->implementation->getConditions();
     }
 
     public function getConditionGroups(): array
