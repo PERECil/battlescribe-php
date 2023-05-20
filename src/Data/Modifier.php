@@ -74,9 +74,9 @@ class Modifier
                 } else {
 
                     if ($this->field === 'hidden') {
-                        $selectionEntry->setHidden($isValid ? ($this->value === 'true' ? true : false) : null);
+                        $selectionEntry->setHidden($isValid ? ($this->value === 'true') : null);
                     } elseif ($this->field === 'name') {
-                        $selectionEntry->setName($isValid ? $this->value : null);
+                        $selectionEntry->setName($isValid ? $this->interpolateName($selectionEntry) : null);
                     } else {
                         throw new UnexpectedValueException("The modifier operation on field " . $this->field . " has not been implemented");
                     }
@@ -104,6 +104,18 @@ class Modifier
             default:
                 throw new UnexpectedValueException("The modifier operation " . $this->type . " has not been implemented");
         }
+    }
+
+    private function interpolateName(ModifiableInterface $selectionEntry): string
+    {
+        $value = $this->value;
+
+        // Special case for %x values that indicate a count
+        if( strpos( $value, '1x ' ) === 0 ) {
+            $value = str_replace( '1x ', $selectionEntry->getSelectedCount() . 'x ', $value );
+        }
+
+        return $value;
     }
 
     public function getType(): ModifierType
