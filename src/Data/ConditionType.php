@@ -14,6 +14,7 @@ use MyCLabs\Enum\Enum;
  * @method static self LESS_THAN()
  * @method static self NOT_INSTANCE_OF()
  * @method static self NOT_EQUAL_TO()
+ * @method static self AT_MOST()
  */
 class ConditionType extends Enum
 {
@@ -24,4 +25,5 @@ class ConditionType extends Enum
     public const LESS_THAN = 'lessThan';
     public const NOT_INSTANCE_OF = 'notInstanceOf';
     public const NOT_EQUAL_TO = 'notEqualTo';
+    public const AT_MOST = 'atMost';
 }

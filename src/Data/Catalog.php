@@ -7,15 +7,15 @@ namespace Battlescribe\Data;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use Closure;
-use JsonSerializable;
-use SimpleXMLElement;
 use UnexpectedValueException;
 
-class Catalog implements IdentifierInterface, TreeInterface
+class Catalog implements CatalogueInterface, TreeInterface
 {
+    use RootTrait;
+
     private const NAME = 'catalogue';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
     private int $revision;
     private string $battleScribeVersion;
@@ -56,8 +56,11 @@ class Catalog implements IdentifierInterface, TreeInterface
     /** @var ProfileInterface[] */
     private array $profiles;
 
+    /** @var Publication[] */
+    private array $publications;
+
     public function __construct(
-        string $id,
+        Identifier $id,
         string $name,
         int $revision,
         string $battleScribeVersion,
@@ -82,17 +85,18 @@ class Catalog implements IdentifierInterface, TreeInterface
         $this->sharedSelectionEntryGroups = [];
         $this->sharedProfiles = [];
         $this->catalogueLinks = [];
+        $this->publications = [];
 
         // This contains references to the shared selections/groups/entries
         // that are imported through entry links. Entry links may override
-        // some of the values with modifier, that's why we can't blindly use
+        // some values with a modifier, that's why we can't blindly use
         // the shared items.
         $this->selectionEntries = [];
         $this->selectionEntryGroups = [];
         $this->profiles = [];
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -107,32 +111,19 @@ class Catalog implements IdentifierInterface, TreeInterface
         return $this;
     }
 
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
-    }
-
     public function getChildren(): array
     {
-        return
-            $this->profileTypes+
-            $this->categoryEntries+
-            $this->entryLinks +
-            $this->rules +
-            $this->sharedSelectionEntries +
-            $this->sharedSelectionEntryGroups +
-            $this->sharedProfiles +
-            $this->catalogueLinks;
+        return array_merge(
+            $this->profileTypes,
+            $this->categoryEntries,
+            $this->entryLinks,
+            $this->rules,
+            $this->sharedSelectionEntries,
+            $this->sharedSelectionEntryGroups,
+            $this->sharedProfiles,
+            $this->catalogueLinks,
+            $this->publications,
+        );
     }
 
     public function getName(): string
@@ -163,6 +154,16 @@ class Catalog implements IdentifierInterface, TreeInterface
     public function getGameSystemRevision(): int
     {
         return $this->gameSystemRevision;
+    }
+
+    public function addPublication(Publication $publication): void
+    {
+        $this->publications[] = $publication;
+    }
+
+    public function getPublications(): array
+    {
+        return $this->publications;
     }
 
     /** @return ProfileType[] */
@@ -224,10 +225,10 @@ class Catalog implements IdentifierInterface, TreeInterface
         $this->selectionEntries[] = $selectionEntry;
     }
 
-    public function findSelectionEntry(string $id): ?SelectionEntryInterface
+    public function findSelectionEntry(Identifier $id): ?SelectionEntryInterface
     {
         foreach($this->selectionEntries as $selectionEntry) {
-            if($selectionEntry->getId() === $id) {
+            if($selectionEntry->getId()->equals($id)) {
                 return $selectionEntry;
             }
         }
@@ -265,13 +266,19 @@ class Catalog implements IdentifierInterface, TreeInterface
         $this->catalogueLinks[] = $catalogueLink;
     }
 
+    /** @inheritDoc */
+    public function getCatalogueLinks(): array
+    {
+        return $this->catalogueLinks;
+    }
+
     public static function fromFile(string $file): ?self
     {
         $data  = file_get_contents($file);
 
         $data = str_replace( ' xmlns="http://www.battlescribe.net/schema/catalogueSchema"', '', $data );
 
-        $element = simplexml_load_string( $data);
+        $element = simplexml_load_string($data);
 
         $xml = new SimpleXmlElementFacade($element);
 
@@ -289,7 +296,7 @@ class Catalog implements IdentifierInterface, TreeInterface
         }
 
         $result = new self(
-            $element->getAttribute('id')->asString(),
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('revision')->asInt(),
             $element->getAttribute('battleScribeVersion')->asString(),
@@ -299,11 +306,11 @@ class Catalog implements IdentifierInterface, TreeInterface
         );
 
         foreach($element->xpath('profileTypes/profileType') as $profileType) {
-            $result->addProfileType(ProfileType::fromXml($profileType));
+            $result->addProfileType(ProfileType::fromXml($result, $profileType));
         }
 
         foreach($element->xpath('categoryEntries/categoryEntry') as $categoryEntry) {
-            $result->addCategoryEntry(SharedCategoryEntry::fromXml($categoryEntry));
+            $result->addCategoryEntry(SharedCategoryEntry::fromXml($result, $categoryEntry));
         }
 
         foreach($element->xpath('entryLinks/entryLink') as $entryLink) {
@@ -311,7 +318,7 @@ class Catalog implements IdentifierInterface, TreeInterface
         }
 
         foreach($element->xpath('rules/rule') as $rule) {
-            $result->addRule(Rule::fromXml($rule));
+            $result->addRule(Rule::fromXml($result, $rule));
         }
 
         foreach($element->xpath('sharedSelectionEntries/selectionEntry') as $selectionEntry) {
@@ -323,11 +330,15 @@ class Catalog implements IdentifierInterface, TreeInterface
         }
 
         foreach($element->xpath('sharedProfiles/profile') as $profile) {
-            $result->addSharedProfile(SharedProfile::fromXml($profile));
+            $result->addSharedProfile(SharedProfile::fromXml($result, $profile));
         }
 
         foreach($element->xpath('catalogueLinks/catalogueLink') as $catalogueLink) {
-            $result->addCatalogueLink(CatalogueLink::fromXml($catalogueLink));
+            $result->addCatalogueLink(CatalogueLink::fromXml($result, $catalogueLink));
+        }
+
+        foreach($element->xpath('publications/publication') as $publication) {
+            $result->addPublication(Publication::fromXml($result, $publication));
         }
 
         return $result;

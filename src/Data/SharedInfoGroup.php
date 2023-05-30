@@ -9,15 +9,20 @@ class SharedInfoGroup extends InfoGroup
     /** @psalm-var array<string,SharedInfoGroup> */
     private static array $instances = [];
 
-    public function __construct(string $id, string $name, bool $hidden)
+    public function __construct(Identifier $id, string $name, bool $hidden)
     {
-        parent::__construct($id, $name, $hidden);
+        parent::__construct($id->getValue(), $name, $hidden);
 
-        self::$instances[ $id ] = $this;
+        self::$instances[ $id->getValue() ] = $this;
     }
 
-    public static function get(string $id): self
+    public function __wakeup(): void
     {
-        return self::$instances[ $id ];
+        self::$instances[ $this->getId()->getValue() ] = $this;
+    }
+
+    public static function get(Identifier $id): self
+    {
+        return self::$instances[ $id->getValue() ];
     }
 }

@@ -4,23 +4,25 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Closure;
+
 class CategoryEntryReference implements CategoryEntryInterface
 {
     private CategoryLink $categoryLink;
-    private string $targetId;
+    private Identifier $targetId;
 
-    public function __construct(CategoryLink $categoryLink, string $targetId)
+    public function __construct(CategoryLink $categoryLink, Identifier $targetId)
     {
         $this->categoryLink = $categoryLink;
         $this->targetId = $targetId;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->categoryLink->getId();
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->targetId;
     }
@@ -38,5 +40,31 @@ class CategoryEntryReference implements CategoryEntryInterface
     public function isHidden(): bool
     {
         return SharedCategoryEntry::get($this->targetId)->isHidden();
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return SharedCategoryEntry::get($this->targetId)->getChildren();
+    }
+
+    public function getParent(): ?TreeInterface
+    {
+        return $this->categoryLink->getParent();
+    }
+
+    public function getRoot(): TreeInterface
+    {
+        return $this->categoryLink->getRoot();
+    }
+
+    public function getGameSystem(): ?GameSystem
+    {
+        return $this->getParent()->getGameSystem();
+    }
+
+    public function findByMatcher(Closure $matcher): array
+    {
+        return SharedCategoryEntry::get($this->targetId)->findByMatcher($matcher);
     }
 }

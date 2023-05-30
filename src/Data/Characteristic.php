@@ -6,22 +6,25 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
-use JsonSerializable;
 
-class Characteristic
+class Characteristic implements TreeInterface, NameInterface
 {
+    use LeafTrait;
+
     private const NAME = 'characteristic';
 
     private string $name;
-    private string $typeId;
+    private ?string $typeId;
     private string $value;
 
     public function __construct(
+        ?TreeInterface $parent,
         string $name,
-        string $typeId,
+        ?string $typeId,
         string $value
     )
     {
+        $this->parent = $parent;
         $this->name = $name;
         $this->typeId = $typeId;
         $this->value = $value;
@@ -32,7 +35,7 @@ class Characteristic
         return $this->name;
     }
 
-    public function getTypeId(): string
+    public function getTypeId(): ?string
     {
         return $this->typeId;
     }
@@ -42,7 +45,7 @@ class Characteristic
         return $this->value;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -53,6 +56,7 @@ class Characteristic
         }
 
         return new self(
+            $parent,
             $element->getAttribute('name')->asString(),
             $element->getAttribute('typeId')->asString(),
             $element->asString()

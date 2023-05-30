@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, HideableInterface, ModifiableInterface, ShareableInterface
+interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, HideableInterface, ModifiableInterface, ShareableInterface, NameInterface, CategorizableInterface, SelectableInterface
 {
-    public function getName(): string;
-
     public function isCollective(): bool;
 
     public function isImport(): bool;
@@ -20,9 +18,12 @@ interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, Hi
     /** @return Constraint[] */
     public function getConstraints(): array;
 
-    public function findConstraint(string $id): ?ConstraintInterface;
+    /** @return RuleInterface[] */
+    public function getRules(): array;
 
-    public function findCost(string $id): ?CostInterface;
+    public function findConstraint(Identifier $id): ?ConstraintInterface;
+
+    public function findCost(Identifier $id): ?CostInterface;
 
     /** @return Profile[] */
     public function getProfiles(): array;
@@ -30,10 +31,7 @@ interface SelectionEntryInterface extends IdentifierInterface, TreeInterface, Hi
     /** @return InfoLink[] */
     public function getInfoLinks(): array;
 
-    /** @return CategoryLink[] */
-    public function getCategoryLinks(): array;
-
-    /** @return SelectionEntryGroup[] */
+    /** @return SelectionEntryGroupInterface[] */
     public function getSelectionEntryGroups(): array;
 
     /** @return SelectionEntry[] */

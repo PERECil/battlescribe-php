@@ -6,30 +6,39 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
+use Closure;
 
 class Profile implements ProfileInterface
 {
+    use BranchTrait;
+
     private const NAME = 'profile';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
+    private ?Identifier $publicationId;
     private bool $hidden;
-    private string $typeId;
-    private string $typeName;
+    private ?string $typeId;
+    private ?string $typeName;
 
     /** @var Characteristic[] */
     private array $characteristics;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
+        ?Identifier $publicationId,
         bool $hidden,
-        string $typeId,
-        string $typeName
+        ?string $typeId,
+        ?string $typeName
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
+        $this->publicationId = $publicationId;
         $this->hidden = $hidden;
         $this->typeId = $typeId;
         $this->typeName = $typeName;
@@ -45,7 +54,7 @@ class Profile implements ProfileInterface
         $this->characteristics[] = $characteristic;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -55,22 +64,27 @@ class Profile implements ProfileInterface
         return $this->name;
     }
 
+    public function getPublicationId(): ?Identifier
+    {
+        return $this->publicationId;
+    }
+
     public function isHidden(): bool
     {
         return $this->hidden;
     }
 
-    public function getTypeId(): string
+    public function getTypeId(): ?string
     {
         return $this->typeId;
     }
 
-    public function getTypeName(): string
+    public function getTypeName(): ?string
     {
         return $this->typeName;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -81,17 +95,27 @@ class Profile implements ProfileInterface
         }
 
         $result = new static(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
+            $element->getAttribute('publicationId')->asIdentifier(),
             $element->getAttribute('hidden')->asBoolean(),
             $element->getAttribute('typeId')->asString(),
             $element->getAttribute('typeName')->asString()
         );
 
         foreach($element->xpath('characteristics/characteristic') as $characteristic) {
-            $result->addCharacteristic(Characteristic::fromXml($characteristic));
+            $result->addCharacteristic(Characteristic::fromXml($result, $characteristic));
         }
 
         return $result;
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->characteristics
+        );
     }
 }

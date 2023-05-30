@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-use Battlescribe\Roster\ConstraintError;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
-use Closure;
 
 class Constraint implements ConstraintInterface
 {
+    use BranchTrait;
+
     public const NAME = 'constraint';
 
-    private string $id;
+    private Identifier $id;
     private string $field;
     private string $scope;
     private float $value;
@@ -30,7 +30,8 @@ class Constraint implements ConstraintInterface
     private array $conditionGroups;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $field,
         string $scope,
         float $value,
@@ -41,6 +42,8 @@ class Constraint implements ConstraintInterface
         ConstraintType $type
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->field = $field;
         $this->scope = $scope;
@@ -55,7 +58,16 @@ class Constraint implements ConstraintInterface
         $this->conditionGroups = [];
     }
 
-    public function getId(): string
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->conditions,
+            $this->conditionGroups
+        );
+    }
+
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -126,7 +138,7 @@ class Constraint implements ConstraintInterface
         $this->conditionGroups[] = $conditionGroup;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -137,7 +149,8 @@ class Constraint implements ConstraintInterface
         }
 
         $result = new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('field')->asString(),
             $element->getAttribute('scope')->asString(),
             $element->getAttribute('value')->asFloat(),
@@ -149,11 +162,11 @@ class Constraint implements ConstraintInterface
         );
 
         foreach($element->xpath('conditions/condition') as $condition) {
-            $result->addCondition(Condition::fromXml($condition));
+            $result->addCondition(Condition::fromXml($result, $condition));
         }
 
         foreach($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
-            $result->addConditionGroup(ConditionGroup::fromXml($conditionGroup));
+            $result->addConditionGroup(ConditionGroup::fromXml($result, $conditionGroup));
         }
 
         return $result;

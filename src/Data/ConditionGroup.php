@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
+use Battlescribe\Utils\UnexpectedNodeException;
 use UnexpectedValueException;
 
-class ConditionGroup
+class ConditionGroup implements TreeInterface
 {
+    use BranchTrait;
+
+    private const NAME = 'conditionGroup';
+
     private ConditionGroupType $type;
 
     /** @var ConditionGroup[] */
@@ -17,12 +22,22 @@ class ConditionGroup
     /** @var Condition[] */
     private array $conditions;
 
-    public function __construct(ConditionGroupType $type)
+    public function __construct(?TreeInterface $parent, ConditionGroupType $type)
     {
+        $this->parent = $parent;
         $this->type = $type;
 
         $this->conditionGroups = [];
         $this->conditions = [];
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->conditionGroups,
+            $this->conditions
+        );
     }
 
     public function isValid(array $selectionEntries, ModifiableInterface $selectionEntry): bool
@@ -74,22 +89,27 @@ class ConditionGroup
         $this->conditions[] = $condition;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
         }
 
+        if($element->getName() !== self::NAME) {
+            throw new UnexpectedNodeException( 'Received a '.$element->getName().', expected '.self::NAME);
+        }
+
         $result = new self(
+            $parent,
             $element->getAttribute('type')->asEnum(ConditionGroupType::class)
         );
 
         foreach($element->xpath('conditionGroups/conditionGroup') as $conditionGroup) {
-            $result->addConditionGroup(ConditionGroup::fromXml($conditionGroup));
+            $result->addConditionGroup(ConditionGroup::fromXml($result, $conditionGroup));
         }
 
         foreach($element->xpath('conditions/condition') as $condition) {
-            $result->addCondition(Condition::fromXml($condition));
+            $result->addCondition(Condition::fromXml($result, $condition));
         }
 
         return $result;

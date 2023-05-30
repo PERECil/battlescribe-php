@@ -1,0 +1,196 @@
+<selection id="c22a-b43b-0bc5-bf4b" name="Howling Banshees" entryId="1ad7-dc0f-9fd9-78e9::cffa-a91b-5693-5fa9" number="1" type="unit">
+    <rules>
+        <rule id="1ad7-dc0f-9fd9-78e9::903e-06e8-ebbc-4d03::a42f-aef2-3d38-3a39" name="Ancient Doom" publicationId="30b2-6f64-pubN137513" hidden="false">
+            <description>You can re-roll failed hit rolls in the Fight phase for this unit in a turn in which it charges or is charged by a SLAANESH unit. However, you must add 1 to Morale tests for this unit if it is within 3&quot; of any SLAANESH units.</description>
+        </rule>
+    </rules>
+    <profiles>
+        <profile id="1ad7-dc0f-9fd9-78e9::79fa-2beb-7064-5bed::56e7-c06e-e0f4-ee45" name="Battle Focus" hidden="false" typeId="72c5eafc-75bf-4ed9-b425-78009f1efe82" typeName="Abilities">
+            <characteristics>
+                <characteristic name="Description" typeId="21befb24-fc85-4f52-a745-64b2e48f8228">If this unit moves or Advances in its Movement phase, weapons (excluding Heavy weapons) are used as if the unit had remained stationary.</characteristic>
+            </characteristics>
+        </profile>
+    </profiles>
+    <selections>
+        <selection id="341f-089d-5f62-2bcd" name="Banshee Mask" entryId="1ad7-dc0f-9fd9-78e9::4901-6258-3bcc-e961::af4b-d622-fbd4-168a" number="1" type="upgrade">
+            <profiles>
+                <profile id="1ad7-dc0f-9fd9-78e9::4901-6258-3bcc-e961::7ac7-f09d-3a81-d3d0::3d6a-3d10-8e46-f035" name="Banshee Mask" hidden="false" typeId="72c5eafc-75bf-4ed9-b425-78009f1efe82" typeName="Abilities">
+                    <characteristics>
+                        <characteristic name="Description" typeId="21befb24-fc85-4f52-a745-64b2e48f8228">Enemy units cannot fire Overwatch at this unit.</characteristic>
+                    </characteristics>
+                </profile>
+            </profiles>
+            <costs>
+                <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                <cost name="pts" typeId="points" value="0.0"/>
+                <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+            </costs>
+        </selection>
+        <selection id="1d68-a9eb-fcef-28a9" name="Acrobatic" entryId="1ad7-dc0f-9fd9-78e9::9f39-a728-13f0-aa4a::025e-590f-a8cf-fcca" number="1" type="upgrade">
+            <profiles>
+                <profile id="1ad7-dc0f-9fd9-78e9::9f39-a728-13f0-aa4a::2352-9e9f-0eda-703a" name="Acrobatic" hidden="false" typeId="72c5eafc-75bf-4ed9-b425-78009f1efe82" typeName="Abilities">
+                    <characteristics>
+                        <characteristic name="Description" typeId="21befb24-fc85-4f52-a745-64b2e48f8228">This unit can Advance and charge in the same turn. In a turn in which it Advanced, you can declare a charge move for this unit if there are any enemy units within 15&quot; of it, and you can add 3 to the resulting charge roll.</characteristic>
+                    </characteristics>
+                </profile>
+            </profiles>
+            <costs>
+                <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                <cost name="pts" typeId="points" value="0.0"/>
+                <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+            </costs>
+        </selection>
+        <selection id="7a00-b571-e00d-a5c6" name="Howling Banshee" entryId="1ad7-dc0f-9fd9-78e9::d329-ba6e-9dd4-3d37" entryGroupId="1ad7-dc0f-9fd9-78e9::2f76-7e05-e5d0-d7f8" number="4" type="model">
+            <profiles>
+                <profile id="1ad7-dc0f-9fd9-78e9::230d-8fe3-2215-9505" name="Howling Banshee" hidden="false" typeId="800f-21d0-4387-c943" typeName="Unit">
+                    <characteristics>
+                        <characteristic name="M" typeId="0bdf-a96e-9e38-7779">8&quot;</characteristic>
+                        <characteristic name="WS" typeId="e7f0-1278-0250-df0c">3+</characteristic>
+                        <characteristic name="BS" typeId="381b-eb28-74c3-df5f">3+</characteristic>
+                        <characteristic name="S" typeId="2218-aa3c-265f-2939">3</characteristic>
+                        <characteristic name="T" typeId="9c9f-9774-a358-3a39">3</characteristic>
+                        <characteristic name="W" typeId="f330-5e6e-4110-0978">1</characteristic>
+                        <characteristic name="A" typeId="13fc-b29b-31f2-ab9f">2</characteristic>
+                        <characteristic name="Ld" typeId="00ca-f8b8-876d-b705">8</characteristic>
+                        <characteristic name="Save" typeId="c0df-df94-abd7-e8d3">4+</characteristic>
+                    </characteristics>
+                </profile>
+            </profiles>
+            <selections>
+                <selection id="59be-7e18-bd8e-233a" name="Shuriken Pistol" entryId="1ad7-dc0f-9fd9-78e9::d9b0-7890-91c4-2391::dd46-aa5e-30ee-abf0" number="4" type="upgrade">
+                    <profiles>
+                        <profile id="1ad7-dc0f-9fd9-78e9::d9b0-7890-91c4-2391::a532-0782-4b84-b65f::56bb-69aa-22ea-acb9" name="Shuriken pistol" hidden="false" typeId="d5f97c0b-9fc9-478d-aa34-a7c414d3ea48" typeName="Weapon">
+                            <characteristics>
+                                <characteristic name="Range" typeId="6fa97fa8-ea74-4a27-a0fb-bc4e5f367464">12&quot;</characteristic>
+                                <characteristic name="Type" typeId="077c342f-d7b9-45c6-b8af-88e97cafd3a2">Pistol 1</characteristic>
+                                <characteristic name="S" typeId="59b1-319e-ec13-d466">4</characteristic>
+                                <characteristic name="AP" typeId="75aa-a838-b675-6484">0</characteristic>
+                                <characteristic name="D" typeId="ae8a-3137-d65b-4ca7">1</characteristic>
+                                <characteristic name="Abilities" typeId="837d-5e63-aeb7-1410">Each time you make a wound roll of 6+ for this weapon, that hit is resolved with an AP of -3 instead of 0.</characteristic>
+                            </characteristics>
+                        </profile>
+                    </profiles>
+                    <costs>
+                        <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                        <cost name="pts" typeId="points" value="0.0"/>
+                        <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+                    </costs>
+                </selection>
+                <selection id="8da1-1c28-3bba-38ca" name="Power Sword" entryId="1ad7-dc0f-9fd9-78e9::a5d5-6b9c-b572-1015::1977-95e4-6f0b-3c77" number="4" type="upgrade">
+                    <profiles>
+                        <profile id="1ad7-dc0f-9fd9-78e9::a5d5-6b9c-b572-1015::1805-169a-48ac-a5dd::47df-8e01-d0cf-58e8" name="Power sword" page="" hidden="false" typeId="d5f97c0b-9fc9-478d-aa34-a7c414d3ea48" typeName="Weapon">
+                            <characteristics>
+                                <characteristic name="Range" typeId="6fa97fa8-ea74-4a27-a0fb-bc4e5f367464">Melee</characteristic>
+                                <characteristic name="Type" typeId="077c342f-d7b9-45c6-b8af-88e97cafd3a2">Melee</characteristic>
+                                <characteristic name="S" typeId="59b1-319e-ec13-d466">+1</characteristic>
+                                <characteristic name="AP" typeId="75aa-a838-b675-6484">-3</characteristic>
+                                <characteristic name="D" typeId="ae8a-3137-d65b-4ca7">1</characteristic>
+                                <characteristic name="Abilities" typeId="837d-5e63-aeb7-1410">-</characteristic>
+                            </characteristics>
+                        </profile>
+                    </profiles>
+                    <costs>
+                        <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                        <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+                        <cost name="pts" typeId="points" value="0.0"/>
+                    </costs>
+                </selection>
+            </selections>
+            <costs>
+                <cost name="pts" typeId="points" value="60.0"/>
+                <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+            </costs>
+        </selection>
+        <selection id="90bf-62c9-57f5-ba3b" name="Howling Banshee Exarch" entryId="1ad7-dc0f-9fd9-78e9::42cf-beb6-818b-d400" entryGroupId="1ad7-dc0f-9fd9-78e9::2f76-7e05-e5d0-d7f8" number="1" type="model">
+            <profiles>
+                <profile id="1ad7-dc0f-9fd9-78e9::5de6-eb61-3e30-c540" name="Howling Banshee Exarch (Whirling Blades)" hidden="false" typeId="800f-21d0-4387-c943" typeName="Unit">
+                    <characteristics>
+                        <characteristic name="M" typeId="0bdf-a96e-9e38-7779">8&quot;</characteristic>
+                        <characteristic name="WS" typeId="e7f0-1278-0250-df0c">3+</characteristic>
+                        <characteristic name="BS" typeId="381b-eb28-74c3-df5f">3+</characteristic>
+                        <characteristic name="S" typeId="2218-aa3c-265f-2939">3</characteristic>
+                        <characteristic name="T" typeId="9c9f-9774-a358-3a39">3</characteristic>
+                        <characteristic name="W" typeId="f330-5e6e-4110-0978">2</characteristic>
+                        <characteristic name="A" typeId="13fc-b29b-31f2-ab9f">4</characteristic>
+                        <characteristic name="Ld" typeId="00ca-f8b8-876d-b705">8</characteristic>
+                        <characteristic name="Save" typeId="c0df-df94-abd7-e8d3">4+</characteristic>
+                    </characteristics>
+                </profile>
+            </profiles>
+            <selections>
+                <selection id="f658-e532-9074-a5d7" name="Exarch Power" entryId="1ad7-dc0f-9fd9-78e9::c775-ee41-886a-e615" number="1" type="upgrade">
+                    <selections>
+                        <selection id="4391-756a-e58c-e231" name="Whirling Blades" entryId="1ad7-dc0f-9fd9-78e9::eb60-cf9c-edca-6d52" entryGroupId="1ad7-dc0f-9fd9-78e9::8e31-e136-57f4-ab0e" number="1" type="upgrade">
+                            <profiles>
+                                <profile id="1ad7-dc0f-9fd9-78e9::4e7a-96bb-19df-a2af" name="Whirling Blades" hidden="false" typeId="72c5eafc-75bf-4ed9-b425-78009f1efe82" typeName="Abilities">
+                                    <characteristics>
+                                        <characteristic name="Description" typeId="21befb24-fc85-4f52-a745-64b2e48f8228">Add 1 to the Attacks characteristic of this unit’s Howling Banshee Exarch. If that Howling Banshee Exarch is equipped with mirrorswords, add 2 to its Attacks characteristic instead.</characteristic>
+                                    </characteristics>
+                                </profile>
+                            </profiles>
+                            <costs>
+                                <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                                <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+                                <cost name="pts" typeId="points" value="0.0"/>
+                            </costs>
+                        </selection>
+                    </selections>
+                    <costs>
+                        <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                        <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+                        <cost name="pts" typeId="points" value="0.0"/>
+                    </costs>
+                </selection>
+                <selection id="3ee0-9c30-32fc-ad95" name="Shuriken Pistol &amp; Executioner" entryId="1ad7-dc0f-9fd9-78e9::29ac-9b83-e3f2-4cfc" entryGroupId="1ad7-dc0f-9fd9-78e9::4968-5020-90dc-2044" number="1" type="upgrade">
+                    <profiles>
+                        <profile id="1ad7-dc0f-9fd9-78e9::9149-0b9b-2a40-dac1::56bb-69aa-22ea-acb9" name="Shuriken pistol" hidden="false" typeId="d5f97c0b-9fc9-478d-aa34-a7c414d3ea48" typeName="Weapon">
+                            <characteristics>
+                                <characteristic name="Range" typeId="6fa97fa8-ea74-4a27-a0fb-bc4e5f367464">12&quot;</characteristic>
+                                <characteristic name="Type" typeId="077c342f-d7b9-45c6-b8af-88e97cafd3a2">Pistol 1</characteristic>
+                                <characteristic name="S" typeId="59b1-319e-ec13-d466">4</characteristic>
+                                <characteristic name="AP" typeId="75aa-a838-b675-6484">0</characteristic>
+                                <characteristic name="D" typeId="ae8a-3137-d65b-4ca7">1</characteristic>
+                                <characteristic name="Abilities" typeId="837d-5e63-aeb7-1410">Each time you make a wound roll of 6+ for this weapon, that hit is resolved with an AP of -3 instead of 0.</characteristic>
+                            </characteristics>
+                        </profile>
+                        <profile id="1ad7-dc0f-9fd9-78e9::2963-abc0-0da3-8c0a::0e11-ff49-5e66-5a68" name="Executioner" hidden="false" typeId="d5f97c0b-9fc9-478d-aa34-a7c414d3ea48" typeName="Weapon">
+                            <characteristics>
+                                <characteristic name="Range" typeId="6fa97fa8-ea74-4a27-a0fb-bc4e5f367464">Melee</characteristic>
+                                <characteristic name="Type" typeId="077c342f-d7b9-45c6-b8af-88e97cafd3a2">Melee</characteristic>
+                                <characteristic name="S" typeId="59b1-319e-ec13-d466">+1</characteristic>
+                                <characteristic name="AP" typeId="75aa-a838-b675-6484">-3</characteristic>
+                                <characteristic name="D" typeId="ae8a-3137-d65b-4ca7">D3</characteristic>
+                                <characteristic name="Abilities" typeId="837d-5e63-aeb7-1410">-</characteristic>
+                            </characteristics>
+                        </profile>
+                    </profiles>
+                    <costs>
+                        <cost name="pts" typeId="points" value="5.0"/>
+                        <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                        <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+                    </costs>
+                </selection>
+            </selections>
+            <costs>
+                <cost name=" PL" typeId="e356-c769-5920-6e14" value="0.0"/>
+                <cost name="pts" typeId="points" value="15.0"/>
+                <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+            </costs>
+        </selection>
+    </selections>
+    <costs>
+        <cost name=" PL" typeId="e356-c769-5920-6e14" value="3.0"/>
+        <cost name="pts" typeId="points" value="0.0"/>
+        <cost name="CP" typeId="2d3b-b544-ad49-fb75" value="0.0"/>
+    </costs>
+    <categories>
+        <category id="2bb4-1b43-95fb-ba42" name="Faction: &lt;Craftworld&gt;" entryId="fb5a-2f35-6253-b891" primary="false"/>
+        <category id="9a44-ecc4-43da-b1f0" name="Faction: Aeldari" entryId="05e9-e880-b1fb-ce90" primary="false"/>
+        <category id="608c-4097-1a52-be25" name="Aspect Warrior" entryId="c1a6-1c19-4bba-5f28" primary="false"/>
+        <category id="bb9b-1311-3d20-f5f3" name="Infantry" entryId="3d52-fccf-10c0-3fae" primary="false"/>
+        <category id="5f4f-3cbf-a1f0-25bb" name="Howling Banshees" entryId="f5a0-6498-0d77-7f1b" primary="false"/>
+        <category id="5e20-8b26-3901-0c59" name="Elites" entryId="638d74c6-bd97-4de5-b65a-6aaa24e9f4b2" primary="true"/>
+        <category id="47b7-537e-0065-110e" name="Faction: Asuryani" entryId="20fc-5c6e-4a04-320f" primary="false"/>
+    </categories>
+</selection>

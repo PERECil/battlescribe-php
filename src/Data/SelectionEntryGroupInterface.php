@@ -4,25 +4,21 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-use JsonSerializable;
-
-interface SelectionEntryGroupInterface extends IdentifierInterface, TreeInterface, HideableInterface, ModifiableInterface, ShareableInterface
+interface SelectionEntryGroupInterface extends IdentifierInterface, TreeInterface, HideableInterface, ModifiableInterface, ShareableInterface, NameInterface
 {
-    public function getName(): string;
-
     public function isCollective(): bool;
 
     public function isImport(): bool;
 
-    public function getDefaultSelectionEntryId(): ?string;
+    public function getDefaultSelectionEntryId(): ?Identifier;
 
-    /** @return Constraint[] */
+    /** @return ConstraintInterface[] */
     public function getConstraints(): array;
 
-    /** @return SelectionEntry[] */
+    /** @return SelectionEntryInterface[] */
     public function getSelectionEntries(): array;
 
-    /** @return SelectionEntryGroup[] */
+    /** @return SelectionEntryGroupInterface[] */
     public function getSelectionEntryGroups(): array;
 
     /** @return EntryLink[] */

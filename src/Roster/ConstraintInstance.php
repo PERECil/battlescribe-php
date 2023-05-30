@@ -4,22 +4,32 @@ declare(strict_types=1);
 
 namespace Battlescribe\Roster;
 
+use Battlescribe\Data\BranchTrait;
 use Battlescribe\Data\ConstraintInterface;
 use Battlescribe\Data\ConstraintType;
+use Battlescribe\Data\Identifier;
 use Battlescribe\Data\ModifiableInterface;
+use Battlescribe\Data\SelectionEntry;
 use Battlescribe\Data\SelectionEntryInterface;
+use Battlescribe\Data\TreeInterface;
+use Closure;
+use UnexpectedValueException;
 
 class ConstraintInstance implements ConstraintInterface
 {
+    use BranchTrait;
+
     private ?float $valueOverride = null;
 
     private ConstraintInterface $implementation;
     private string $instanceId;
 
-    public function __construct(ConstraintInterface $implementation)
+    public function __construct(?TreeInterface $parent, ConstraintInterface $implementation)
     {
-        $this->implementation = $implementation;
+        $this->parent = $parent;
+
         $this->instanceId = spl_object_hash($this);
+        $this->implementation = $implementation;
     }
 
     public function applyTo(array $selectionEntries, ModifiableInterface $selectionEntry): void
@@ -40,23 +50,35 @@ class ConstraintInstance implements ConstraintInterface
 
                 switch($this->getScope()) {
                     case 'force':
-                        $entries = $selectionEntry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $e) use($selectionEntry) { return $selectionEntry->getSharedId() === $e->getSharedId();});
+                        $entries = $selectionEntry->getRoot()->findByMatcher(function(TreeInterface $e) use($selectionEntry) { return ($e instanceof SelectionEntryInterface) && $selectionEntry->getSharedId() === $e->getSharedId();});
 
                         $totalSelectedCount = array_reduce($entries, function(SelectionEntryInterface $e) { return $e->getSelectedCount(); }, 0);
 
                         if($totalSelectedCount < $selectionEntry->getMinimumSelectedCount()) {
                             $selectionEntry->addError(new ConstraintError($this));
                         }
-
                         break;
+
                     case 'parent':
                         if($selectionEntry->getSelectedCount() < $selectionEntry->getMinimumSelectedCount()) {
                             $selectionEntry->addError(new ConstraintError($this));
                         }
-
                         break;
+
+                    case 'roster':
+                        $roster = $selectionEntry->getRoot();
+
+                        if(!$roster instanceof RosterInstance) {
+                            throw new UnexpectedValueException('Expected roster to be an instance of RosterInstance, got '.get_class($roster).' instead' );
+                        }
+
+                        if($roster->getSelectedCount() < $roster->getMinimumSelectedCount()) {
+                            $roster->addError(new ConstraintError($this));
+                        }
+                        break;
+
                     default:
-                        throw new \UnexpectedValueException('Scope '.$this->scope.' not handled in constraint' );
+                        throw new UnexpectedValueException('Scope '.$this->getScope().' not handled in constraint' );
                 }
             }
 
@@ -65,7 +87,7 @@ class ConstraintInstance implements ConstraintInterface
 
                 switch($this->implementation->getScope()) {
                     case 'force':
-                        $entries = $selectionEntry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $e) use($selectionEntry) { return $selectionEntry->getSharedId() === $e->getSharedId();});
+                        $entries = $selectionEntry->getRoot()->findByMatcher(function(TreeInterface $e) use($selectionEntry) { return ($e instanceof SelectionEntryInterface) && $selectionEntry->getSharedId() === $e->getSharedId();});
 
                         $totalSelectedCount = array_reduce($entries, function(int $carry, SelectionEntryInterface $e) { return $carry + $e->getSelectedCount(); }, 0);
 
@@ -79,9 +101,24 @@ class ConstraintInstance implements ConstraintInterface
                             $selectionEntry->addError(new ConstraintError($this));
                         }
 
+
+
                         break;
+
+                    case 'roster':
+                        $roster = $selectionEntry->getRoot();
+
+                        if(!$roster instanceof RosterInstance) {
+                            throw new UnexpectedValueException('Expected roster to be an instance of RosterInstance, got '.get_class($roster).' instead' );
+                        }
+
+                        if($roster->getSelectedCount() < $roster->getMaximumSelectedCount()) {
+                            $roster->addError(new ConstraintError($this));
+                        }
+                        break;
+
                     default:
-                        throw new \UnexpectedValueException('Scope '.$this->getScope().' not handled in constraint' );
+                        throw new UnexpectedValueException('Scope '.$this->getScope().' not handled in constraint' );
                 }
             }
         }
@@ -102,7 +139,7 @@ class ConstraintInstance implements ConstraintInterface
         return $this->valueOverride ?? $this->implementation->getValue();
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->implementation->getId();
     }
@@ -150,5 +187,24 @@ class ConstraintInstance implements ConstraintInterface
     public function getConditionGroups(): array
     {
         return $this->implementation->getConditionGroups();
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return $this->implementation->getChildren();
+    }
+
+    /** @inheritDoc */
+    public function findByMatcher(Closure $matcher): array
+    {
+        $result = array_filter($this->getChildren(), $matcher);
+
+        /** @var TreeInterface $child */
+        foreach($this->getChildren() as $child) {
+            $result = array_merge($result, $child->findByMatcher($matcher));
+        }
+
+        return $result;
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Battlescribe\Utils;
 
-use MyCLabs\Enum\Enum;
+use Battlescribe\Data\Identifier;
 use SimpleXMLElement;
 use UnexpectedValueException;
 
@@ -95,6 +95,11 @@ class SimpleXmlElementFacade
         }
 
         return new $enumClass($value);
+    }
+
+    public function asIdentifier(): ?Identifier
+    {
+        return Identifier::fromString($this->asString());
     }
 
     public function asFloat(): ?float

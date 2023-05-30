@@ -7,24 +7,29 @@ namespace Battlescribe\Data;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 
-class CatalogueLink
+class CatalogueLink implements IdentifierInterface, TreeInterface
 {
+    use LeafTrait;
+
     private const NAME = 'catalogueLink';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
-    private string $targetId;
+    private Identifier $targetId;
     private CatalogueLinkType $type;
     private bool $importRootEntries;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
-        string $targetId,
+        Identifier $targetId,
         CatalogueLinkType $type,
         bool $importRootEntries
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->targetId = $targetId;
@@ -32,7 +37,17 @@ class CatalogueLink
         $this->importRootEntries = $importRootEntries;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public function getId(): Identifier
+    {
+        return $this->id;
+    }
+
+    public function getTargetId(): Identifier
+    {
+        return $this->targetId;
+    }
+
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -43,9 +58,10 @@ class CatalogueLink
         }
 
         return new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
-            $element->getAttribute('targetId')->asString(),
+            $element->getAttribute('targetId')->asIdentifier(),
             $element->getAttribute('type')->asEnum(CatalogueLinkType::class),
             $element->getAttribute('importRootEntries')->asBoolean(),
         );

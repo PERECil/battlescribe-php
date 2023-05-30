@@ -4,141 +4,102 @@ declare(strict_types=1);
 
 namespace Battlescribe\Roster;
 
-use Battlescribe\Data\EntryLink;
+use Battlescribe\Data\Cost;
+use Battlescribe\Data\CostInterface;
+use Battlescribe\Data\ForceEntry;
 use Battlescribe\Data\GameSystem;
+use Battlescribe\Data\Identifier;
 use Battlescribe\Data\IdentifierInterface;
-use Battlescribe\Data\SelectionEntryGroupInterface;
-use Battlescribe\Data\SelectionEntryInterface;
+use Battlescribe\Data\RootTrait;
+use Battlescribe\Data\Traits\HasCostTrait;
 use Battlescribe\Data\TreeInterface;
+use Battlescribe\Utils\SimpleXmlElementFacade;
+use Battlescribe\Utils\UnexpectedNodeException;
 use Closure;
-use UnexpectedValueException;
 
-class Roster implements IdentifierInterface, TreeInterface
+/** One-to-one mapping with the XML */
+class Roster implements RosterInterface, TreeInterface, IdentifierInterface
 {
-    private GameSystem $gameSystem;
+    use RootTrait;
 
-    /** @var SelectionEntryInstance[] */
-    private array $selectionEntries;
+    use HasCostTrait;
 
-    /** @var SelectionEntryGroupInstance[] */
-    private array $selectionEntryGroups;
+    private const NAME = 'roster';
 
-    public function __construct(GameSystem $gameSystem)
+    /** @var ForceInterface[] */
+    private array $forces;
+
+    private Identifier $id;
+    private string $name;
+    private string $battleScribeVersion;
+    private Identifier $gameSystemId;
+    private string $gameSystemName;
+    private int $gameSystemRevision;
+
+    public function __construct(
+        Identifier $id,
+        string $name,
+        string $battleScribeVersion,
+        Identifier $gameSystemId,
+        string $gameSystemName,
+        int $gameSystemRevision,
+    )
     {
-        $this->gameSystem = $gameSystem;
+        $this->id = $id;
+        $this->name = $name;
+        $this->battleScribeVersion = $battleScribeVersion;
+        $this->gameSystemId = $gameSystemId;
+        $this->gameSystemName = $gameSystemName;
+        $this->gameSystemRevision = $gameSystemRevision;
 
-        $this->selectionEntries = [];
-        $this->selectionEntryGroups = [];
-
-        foreach($this->gameSystem->getEntryLinks() as $entryLink) {
-            $this->addEntryLink($entryLink);
-        }
-
-        $this->computeState();
+        $this->costs = [];
+        $this->forces = [];
     }
 
-    public function getSelectionEntries(): array
+    public function getName(): string
     {
-        return $this->selectionEntries;
+        return $this->name;
     }
 
-    public function findSelectionEntryByMatcher(Closure $matcher): array
+    public function getBattleScribeVersion(): string
     {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
+        return $this->battleScribeVersion;
     }
 
-    /** @return SelectionEntryInstance[] */
-    public function findSelectionEntryByName(string $name): array
+    public function getGameSystemId(): Identifier
     {
-        $result = [];
-
-        foreach($this->selectionEntries as $selectionEntry) {
-            if($selectionEntry->getName() === $name) {
-                $result[] = $selectionEntry;
-            }
-        }
-
-        return $result;
+        return $this->gameSystemId;
     }
 
-    public function findSelectionEntryGroupByInstanceId(string $instanceId): ?SelectionEntryGroupInstance
+    public function getGameSystemName(): string
     {
-        foreach($this->selectionEntryGroups as $selectionEntryGroup) {
-            if($selectionEntryGroup->getInstanceId() === $instanceId) {
-                return $selectionEntryGroup;
-            }
-        }
-
-        foreach($this->selectionEntries as $selectionEntry) {
-            $selectionEntryGroup = $selectionEntry->findSelectionEntryGroupByInstanceId($instanceId);
-
-            if($selectionEntryGroup !== null) {
-                return $selectionEntryGroup;
-            }
-        }
-
-        return null;
+        return $this->gameSystemName;
     }
 
-    public function addEntryLink(EntryLink $entryLink): void
+    public function getGameSystemRevision(): int
     {
-        $this->entryLinks[] = $entryLink;
-
-        $linkedObject = $entryLink->getLinkedObject();
-
-        if($linkedObject instanceof SelectionEntryInterface) {
-            $this->addSelectionEntry($linkedObject);
-        } elseif($linkedObject instanceof SelectionEntryGroupInterface) {
-            $this->addSelectionEntryGroup($linkedObject);
-        } else {
-            throw new UnexpectedValueException();
-        }
+        return $this->gameSystemRevision;
     }
 
-    public function addSelectionEntry(SelectionEntryInterface $selectionEntry): void
+    public function addForce(ForceInterface $force): void
     {
-        $this->selectionEntries[] = new SelectionEntryInstance($this, $selectionEntry);
+        $this->forces[] = $force;
     }
 
-    public function computeState(): void
+    /** @return Force[] */
+    public function getForces(): array
     {
-        foreach($this->selectionEntries as $selectionEntry) {
-            $selectionEntry->computeState($this->selectionEntries);
-        }
+        return $this->forces;
     }
 
-    public function removeSelectionEntry(string $instanceId): void
+    public function getId(): Identifier
     {
-        foreach( $this->selectionEntries as $index => $selectionEntry) {
-            if( $selectionEntry->getInstanceId() === $instanceId) {
-                array_splice($this->selectionEntries, $index, 1);
-            }
-        }
-    }
-
-    public function getId(): string
-    {
-        return '0000-0000-0000-0000';
-    }
-
-    public function getSharedId(): string
-    {
-        return '0000-0000-0000-0000';
+        return $this->id;
     }
 
     public function getChildren(): array
     {
-        return $this->selectionEntries;
+        return $this->forces;
     }
 
     public function getParent(): ?TreeInterface
@@ -149,5 +110,35 @@ class Roster implements IdentifierInterface, TreeInterface
     public function getRoot(): TreeInterface
     {
         return $this;
+    }
+
+    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    {
+        if($element === null) {
+            return null;
+        }
+
+        if($element->getName() !== self::NAME) {
+            throw new UnexpectedNodeException( 'Received a '.$element->getName().', expected '.self::NAME);
+        }
+
+        $result = new self(
+            $element->getAttribute('id')->asIdentifier(),
+            $element->getAttribute('name')->asString(),
+            $element->getAttribute('battleScribeVersion')->asString(),
+            $element->getAttribute('gameSystemId')->asIdentifier(),
+            $element->getAttribute('gameSystemName')->asString(),
+            $element->getAttribute('gameSystemRevision')->asInt()
+        );
+
+        foreach($element->xpath('costs/cost') as $cost) {
+            $result->addCost(Cost::fromXml($result, $cost));
+        }
+
+        foreach($element->xpath('forces/force') as $force) {
+            $result->addForce(Force::fromXml($result, $force));
+        }
+
+        return $result;
     }
 }

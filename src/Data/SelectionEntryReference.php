@@ -8,10 +8,12 @@ use Closure;
 
 class SelectionEntryReference implements SelectionEntryInterface
 {
-    private EntryLink $entryLink;
-    private string $targetId;
+    use SelectableTrait;
 
-    public function __construct(EntryLink $entryLink, string $targetId)
+    private EntryLink $entryLink;
+    private Identifier $targetId;
+
+    public function __construct(EntryLink $entryLink, Identifier $targetId)
     {
         $this->entryLink = $entryLink;
         $this->targetId = $targetId;
@@ -27,22 +29,22 @@ class SelectionEntryReference implements SelectionEntryInterface
         return $this->getParent()->getRoot();
     }
 
+    public function getGameSystem(): ?GameSystem
+    {
+        return $this->getParent()->getGameSystem();
+    }
+
     public function getChildren(): array
     {
         return [];
     }
 
-    public function findSelectionEntryByMatcher(CLosure $matcher): array
-    {
-        return SharedSelectionEntry::get($this->targetId)->findSelectionEntryByMatcher($matcher);
-    }
-
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->entryLink->getId();
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->targetId;
     }
@@ -83,12 +85,17 @@ class SelectionEntryReference implements SelectionEntryInterface
         return SharedSelectionEntry::get($this->targetId)->getConstraints();
     }
 
-    public function findConstraint(string $id): ?Constraint
+    public function getRules(): array
+    {
+        return SharedSelectionEntry::get($this->targetId)->getRules();
+    }
+
+    public function findConstraint(Identifier $id): ?Constraint
     {
         return SharedSelectionEntry::get($this->targetId)->findConstraint($id);
     }
 
-    public function findCost(string $id): ?Cost
+    public function findCost(Identifier $id): ?Cost
     {
         return SharedSelectionEntry::get($this->targetId)->findCost($id);
     }
@@ -157,5 +164,16 @@ class SelectionEntryReference implements SelectionEntryInterface
             // 'entry_links' => $this->entryLinks,
             // 'info_links' => $this->infoLinks,
         ];
+    }
+
+    /** @inheritDoc */
+    public function findByMatcher(Closure $matcher): array
+    {
+        return SharedSelectionEntry::get($this->targetId)?->findByMatcher($matcher) ?? [];
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
     }
 }

@@ -6,5 +6,5 @@ namespace Battlescribe\Data;
 
 interface ShareableInterface
 {
-    public function getSharedId(): string;
+    public function getSharedId(): Identifier;
 }

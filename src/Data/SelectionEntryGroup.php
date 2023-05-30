@@ -11,15 +11,16 @@ use UnexpectedValueException;
 
 class SelectionEntryGroup implements SelectionEntryGroupInterface
 {
+    use BranchTrait;
+
     private const NAME = 'selectionEntryGroup';
 
-    private ?TreeInterface $parent;
-    private string $id;
+    private Identifier $id;
     private string $name;
     private bool $hidden;
     private bool $collective;
     private bool $import;
-    private ?string $defaultSelectionEntryId;
+    private ?Identifier $defaultSelectionEntryId;
 
     /** @var Modifier[] */
     private array $modifiers;
@@ -36,17 +37,21 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
     /** @var EntryLink[] */
     private array $entryLinks;
 
+    /** @var CategoryEntryInterface[] */
+    private array $categoryEntries;
+
     public function __construct(
         ?TreeInterface $parent,
-        string $id,
+        Identifier $id,
         string $name,
         bool $hidden,
         bool $collective,
         bool $import,
-        ?string $defaultSelectionEntryId
+        ?Identifier $defaultSelectionEntryId
     )
     {
         $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->hidden = $hidden;
@@ -61,52 +66,24 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
         $this->entryLinks = [];
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->id;
-    }
-
-    public function getParent(): ?TreeInterface
-    {
-        return $this->parent;
-    }
-
-    public function getRoot(): TreeInterface
-    {
-        return $this->getParent()->getRoot();
-    }
-
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry->getId())) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        foreach($this->getSelectionEntryGroups() as $selectionEntryGroup) {
-            $result += $selectionEntryGroup->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
     }
 
     public function getChildren(): array
     {
-        return
-            $this->constraints +
-            $this->selectionEntries +
-            $this->selectionEntryGroups +
-            $this->entryLinks;
+        return array_merge(
+            $this->constraints,
+            $this->selectionEntries,
+            $this->selectionEntryGroups,
+            $this->entryLinks
+        );
     }
 
     public function getName(): string
@@ -129,7 +106,7 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
         return $this->import;
     }
 
-    public function getDefaultSelectionEntryId(): ?string
+    public function getDefaultSelectionEntryId(): ?Identifier
     {
         return $this->defaultSelectionEntryId;
     }
@@ -208,7 +185,25 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
         }
     }
 
-    public static function fromXml(?IdentifierInterface $parent, SimpleXmlElementFacade $element): ?self
+    public function addCategoryLink(CategoryLink $categoryLink): void
+    {
+        $this->categoryLinks[] = $categoryLink;
+
+        $linkedObject = $categoryLink->getLinkedObject();
+
+        if($linkedObject instanceof CategoryEntryInterface) {
+            $this->addCategoryEntry($linkedObject);
+        } else {
+            throw new UnexpectedValueException();
+        }
+    }
+
+    public function addCategoryEntry(CategoryEntryInterface $categoryEntry): void
+    {
+        $this->categoryEntries[] = $categoryEntry;
+    }
+
+    public static function fromXml(?IdentifierInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if ($element === null) {
             return null;
@@ -220,20 +215,20 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
 
         $result = new static(
             $parent,
-            $element->getAttribute('id')->asString(),
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
             $element->getAttribute('collective')->asBoolean(),
             $element->getAttribute('import')->asBoolean(),
-            $element->getAttribute('defaultSelectionEntryId')->asString(),
+            $element->getAttribute('defaultSelectionEntryId')->asIdentifier(),
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         foreach($element->xpath('constraints/constraint') as $constraint) {
-            $result->addConstraint(Constraint::fromXml($constraint));
+            $result->addConstraint(Constraint::fromXml($result, $constraint));
         }
 
         foreach($element->xpath('selectionEntries/selectionEntry') as $selectionEntry) {
@@ -249,5 +244,10 @@ class SelectionEntryGroup implements SelectionEntryGroupInterface
         }
 
         return $result;
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
     }
 }

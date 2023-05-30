@@ -9,17 +9,21 @@ use Battlescribe\Utils\UnexpectedNodeException;
 
 class InfoGroup implements InfoGroupInterface
 {
+    use BranchTrait;
+
     private const NAME = 'infoGroup';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
     private bool $hidden;
 
     /** @var ProfileInterface[] */
     private array $profiles;
 
-    public function __construct(string $id, string $name, bool $hidden)
+    public function __construct(?TreeInterface $parent, Identifier $id, string $name, bool $hidden)
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->hidden = $hidden;
@@ -27,7 +31,15 @@ class InfoGroup implements InfoGroupInterface
         $this->profiles = [];
     }
 
-    public function getId(): string
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->profiles
+        );
+    }
+
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -47,7 +59,12 @@ class InfoGroup implements InfoGroupInterface
         $this->profiles[] = $profile;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public function getProfiles(): array
+    {
+        return $this->profiles;
+    }
+
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if ($element === null) {
             return null;
@@ -58,13 +75,14 @@ class InfoGroup implements InfoGroupInterface
         }
 
         $result = new self(
+            $parent,
             $element->getAttribute('id')->asString(),
             $element->getAttribute('name')->asString(),
-            $element->getAttribute('hidden')->asBool(),
+            $element->getAttribute('hidden')->asBoolean(),
         );
 
         foreach ($element->xpath('profiles/profile') as $profile) {
-            $result->addProfile(Profile::fromXml($profile));
+            $result->addProfile(Profile::fromXml($result, $profile));
         }
 
         return $result;

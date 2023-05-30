@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Battlescribe\Query\Matcher;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
+use Closure;
 
 class Rule implements RuleInterface
 {
+    use LeafTrait;
+
     private const NAME = 'rule';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
+    private ?Identifier $publicationId;
     private bool $hidden;
     private ?string $description;
 
@@ -20,21 +25,26 @@ class Rule implements RuleInterface
     private array $modifiers;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
+        ?Identifier $publicationId,
         bool $hidden,
         ?string $description
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
+        $this->publicationId = $publicationId;
         $this->hidden = $hidden;
         $this->description = $description;
 
         $this->modifiers = [];
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -42,6 +52,16 @@ class Rule implements RuleInterface
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function getPublicationId(): ?Identifier
+    {
+        return $this->publicationId;
+    }
+
+    public function getPublication(): ?Publication
+    {
+        return $this->getGameSystem()->findByMatcher(Matcher::id($this->publicationId))[0] ?? null;
     }
 
     public function isHidden(): bool
@@ -59,7 +79,7 @@ class Rule implements RuleInterface
         $this->modifiers[] = $modifier;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -70,16 +90,26 @@ class Rule implements RuleInterface
         }
 
         $result = new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
+            $element->getAttribute('publicationId')->asIdentifier(),
             $element->getAttribute('hidden')->asBoolean(),
             $element->xpath('description')->current()->asString()
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         return $result;
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->modifiers,
+        );
     }
 }

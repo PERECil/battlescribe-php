@@ -6,16 +6,17 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
-use JsonSerializable;
 
-class CategoryLink implements JsonSerializable
+class CategoryLink implements IdentifierInterface, TreeInterface
 {
+    use BranchTrait;
+
     private const NAME = 'categoryLink';
 
-    private string $id;
-    private string $name;
+    private Identifier $id;
+    private ?string $name;
     private bool $hidden;
-    private string $targetId;
+    private Identifier $targetId;
     private bool $primary;
 
     /** @var Modifier[] */
@@ -25,13 +26,16 @@ class CategoryLink implements JsonSerializable
     private array $constraints;
 
     public function __construct(
-        string $id,
-        string $name,
+        ?TreeInterface $parent,
+        Identifier $id,
+        ?string $name,
         bool $hidden,
-        string $targetId,
+        Identifier $targetId,
         bool $primary
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->hidden = $hidden;
@@ -42,12 +46,21 @@ class CategoryLink implements JsonSerializable
         $this->constraints = [];
     }
 
-    public function getId(): string
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->modifiers,
+            $this->constraints
+        );
+    }
+
+    public function getId(): Identifier
     {
         return $this->id;
     }
 
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -57,7 +70,7 @@ class CategoryLink implements JsonSerializable
         return $this->hidden;
     }
 
-    public function getTargetId(): string
+    public function getTargetId(): Identifier
     {
         return $this->targetId;
     }
@@ -92,7 +105,7 @@ class CategoryLink implements JsonSerializable
         return new CategoryEntryReference($this, $this->targetId);
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -103,32 +116,27 @@ class CategoryLink implements JsonSerializable
         }
 
         $result = new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
-            $element->getAttribute('targetId')->asString(),
+            $element->getAttribute('targetId')->asIdentifier(),
             $element->getAttribute('primary')->asBoolean()
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         foreach($element->xpath('constraints/constraint') as $constraint) {
-            $result->addConstraint(Constraint::fromXml($constraint));
+            $result->addConstraint(Constraint::fromXml($result, $constraint));
         }
 
         return $result;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function jsonSerialize(): array
+    public function __toString(): string
     {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-        ];
+        return $this->getName();
     }
 }

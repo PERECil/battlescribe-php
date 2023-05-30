@@ -10,11 +10,16 @@ interface TreeInterface
 {
     public function getParent(): ?TreeInterface;
 
-    /** @return TreeInterface[] */
+    /**
+     * Gets the shallow list of children.
+     * @return TreeInterface[]
+     */
     public function getChildren(): array;
 
     public function getRoot(): TreeInterface;
 
-    /** @return SelectionEntryInterface[] */
-    public function findSelectionEntryByMatcher(Closure $matcher): array;
+    public function getGameSystem(): ?GameSystem;
+
+    /** @return TreeInterface[] */
+    public function findByMatcher(Closure $matcher): array;
 }

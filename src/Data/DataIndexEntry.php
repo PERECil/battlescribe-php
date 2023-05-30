@@ -6,17 +6,29 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 
-class DataIndexEntry
+class DataIndexEntry implements IdentifierInterface, TreeInterface
 {
-    private string $id;
+    use LeafTrait;
+
+    private Identifier $id;
     private string $name;
     private string $filePath;
     private DataIndexEntryType $type;
     private string $battlescribeVersion;
     private int $revision;
 
-    public function __construct(string $id, string $name, string $filePath, DataIndexEntryType $type, string $battlescribeVersion, int $revision )
+    public function __construct(
+        ?TreeInterface $parent,
+        Identifier $id,
+        string $name,
+        string $filePath,
+        DataIndexEntryType $type,
+        string $battlescribeVersion,
+        int $revision
+    )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->filePath = $filePath;
@@ -25,7 +37,7 @@ class DataIndexEntry
         $this->revision = $revision;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -55,10 +67,11 @@ class DataIndexEntry
         return $this->revision;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         return new self(
-            $element->getAttribute('dataId')->asString(),
+            $parent,
+            $element->getAttribute('dataId')->asIdentifier(),
             $element->getAttribute('dataName')->asString(),
             $element->getAttribute('filePath')->asString(),
             $element->getAttribute('dataType')->asEnum(DataIndexEntryType::class),

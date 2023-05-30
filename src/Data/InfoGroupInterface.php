@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-interface InfoGroupInterface extends HideableInterface
+interface InfoGroupInterface extends HideableInterface, IdentifierInterface, TreeInterface
 {
 
 }

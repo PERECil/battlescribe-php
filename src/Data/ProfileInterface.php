@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-use JsonSerializable;
+use Battlescribe\Query\NameQuery;
 
-interface ProfileInterface extends HideableInterface
+interface ProfileInterface extends IdentifierInterface, HideableInterface, TreeInterface, NameInterface
 {
-    public function getId(): string;
-
-    public function getName(): string;
-
     /** @return Characteristic[] */
     public function getCharacteristics(): array;
 
-    public function getTypeId(): string;
+    public function getTypeId(): ?string;
 
-    public function getTypeName(): string;
+    public function getTypeName(): ?string;
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-use Battlescribe\Roster\SelectionEntryInstance;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use Closure;
@@ -12,13 +11,15 @@ use UnexpectedValueException;
 
 class GameSystem implements IdentifierInterface, TreeInterface
 {
+    use RootTrait;
+
     private const NAME = 'gameSystem';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
     private int $revision;
     private string $battlescribeVersion;
-    private string $authorUrl;
+    private ?string $authorUrl;
 
     /** @var Publication[] */
     private array $publications;
@@ -48,11 +49,11 @@ class GameSystem implements IdentifierInterface, TreeInterface
     private array $profiles;
 
     public function __construct(
-        string $id,
+        Identifier $id,
         string $name,
         int $revision,
         string $battlescribeVersion,
-        string $authorUrl
+        ?string $authorUrl
     )
     {
         $this->id = $id;
@@ -72,7 +73,7 @@ class GameSystem implements IdentifierInterface, TreeInterface
         $this->profiles = [];
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -87,39 +88,20 @@ class GameSystem implements IdentifierInterface, TreeInterface
         return $this;
     }
 
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        foreach($this->getSelectionEntryGroups() as $selectionEntryGroup) {
-            $result += $selectionEntryGroup->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
-    }
-
+    /** @inheritDoc */
     public function getChildren(): array
     {
-        // publications don't have an id,
-        // costTypes don't have an id,
-        // remove it from children
-
-        return
-            $this->profileTypes+
-            $this->categoryEntries+
-            $this->forceEntries+
-            $this->entryLinks+
-            $this->selectionEntries+
-            $this->selectionEntryGroups+
-            $this->profiles;
+        return array_merge(
+            $this->publications,
+            $this->costTypes,
+            $this->profileTypes,
+            $this->categoryEntries,
+            $this->forceEntries,
+            $this->entryLinks,
+            $this->selectionEntries,
+            $this->selectionEntryGroups,
+            $this->profiles
+        );
     }
 
     public function getName(): string
@@ -162,6 +144,7 @@ class GameSystem implements IdentifierInterface, TreeInterface
         return $this->categoryEntries;
     }
 
+    /** @return ForceEntry[] */
     public function getForceEntries(): array
     {
         return $this->forceEntries;
@@ -189,15 +172,25 @@ class GameSystem implements IdentifierInterface, TreeInterface
 
     public static function fromFile(string $file): ?self
     {
-        $data  = file_get_contents($file);
+        $binaryFile = $file.'.bin';
 
-        $data = str_replace( ' xmlns="http://www.battlescribe.net/schema/gameSystemSchema"', '', $data );
+        if(file_exists($binaryFile)) {
+            return unserialize(file_get_contents($binaryFile));
+        } else {
+            $data  = file_get_contents($file);
 
-        $element = simplexml_load_string( $data);
+            $data = str_replace( ' xmlns="http://www.battlescribe.net/schema/gameSystemSchema"', '', $data );
 
-        $xml = new SimpleXmlElementFacade($element);
+            $element = simplexml_load_string( $data);
 
-        return self::fromXml($xml);
+            $xml = new SimpleXmlElementFacade($element);
+
+            $gameSystem = self::fromXml($xml);
+
+            file_put_contents($binaryFile, serialize($gameSystem));
+
+            return $gameSystem;
+        }
     }
 
     public function addPublication(Publication $publication): void
@@ -266,7 +259,7 @@ class GameSystem implements IdentifierInterface, TreeInterface
         }
 
         $result = new self(
-            $element->getAttribute('id')->asString(),
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('revision')->asInt(),
             $element->getAttribute('battleScribeVersion')->asString(),
@@ -274,23 +267,23 @@ class GameSystem implements IdentifierInterface, TreeInterface
         );
 
         foreach($element->xpath('publications/publication') as $publication) {
-            $result->addPublication(Publication::fromXml($publication));
+            $result->addPublication(Publication::fromXml($result, $publication));
         }
 
         foreach($element->xpath('costTypes/costType') as $costType) {
-            $result->addCostType(CostType::fromXml($costType));
+            $result->addCostType(CostType::fromXml($result, $costType));
         }
 
         foreach($element->xpath('profileTypes/profileType') as $profileType) {
-            $result->addProfileType(ProfileType::fromXml($profileType));
+            $result->addProfileType(ProfileType::fromXml($result, $profileType));
         }
 
         foreach($element->xpath('categoryEntries/categoryEntry') as $categoryEntry) {
-            $result->addCategoryEntry(SharedCategoryEntry::fromXml($categoryEntry));
+            $result->addCategoryEntry(SharedCategoryEntry::fromXml($result, $categoryEntry));
         }
 
         foreach($element->xpath('forceEntries/forceEntry') as $forceEntry) {
-            $result->addForceEntry(ForceEntry::fromXml($forceEntry));
+            $result->addForceEntry(ForceEntry::fromXml($result, $forceEntry));
         }
 
         foreach($element->xpath('entryLinks/entryLink') as $entryLink) {
@@ -306,7 +299,7 @@ class GameSystem implements IdentifierInterface, TreeInterface
         }
 
         foreach($element->xpath('sharedProfiles/profile') as $profile) {
-            $result->addProfile(SharedProfile::fromXml($profile));
+            $result->addProfile(SharedProfile::fromXml($result, $profile));
         }
 
         return $result;

@@ -9,15 +9,28 @@ class SharedProfile extends Profile
     /** @psalm-var array<string,SharedProfile> */
     private static array $instances = [];
 
-    public function __construct(string $id, string $name, bool $hidden, string $typeId, string $typeName)
+    public function __construct(
+        ?TreeInterface $parent,
+        Identifier $id,
+        string $name,
+        ?Identifier $publicationId,
+        bool $hidden,
+        ?string $typeId,
+        ?string $typeName
+    )
     {
-        parent::__construct($id, $name, $hidden, $typeId, $typeName);
+        parent::__construct($parent, $id, $name, $publicationId, $hidden, $typeId, $typeName);
 
-        self::$instances[ $id ] = $this;
+        self::$instances[ $id->getValue() ] = $this;
     }
 
-    public static function get(string $id): self
+    public function __wakeup(): void
     {
-        return self::$instances[ $id ];
+        self::$instances[ $this->getId()->getValue() ] = $this;
+    }
+
+    public static function get(Identifier $id): ?self
+    {
+        return self::$instances[ $id->getValue() ] ?? null;
     }
 }

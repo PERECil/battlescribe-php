@@ -8,17 +8,18 @@ use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use UnexpectedValueException;
 
-class EntryLink implements IdentifierInterface
+class EntryLink implements IdentifierInterface, TreeInterface
 {
+    use BranchTrait;
+
     private const NAME = 'entryLink';
 
-    private ?TreeInterface $parent;
-    private string $id;
+    private Identifier $id;
     private ?string $name;
     private bool $hidden;
     private bool $collective;
     private bool $import;
-    private string $targetId;
+    private Identifier $targetId;
     private EntryLinkType $type;
 
     /** @var Modifier[] */
@@ -32,12 +33,12 @@ class EntryLink implements IdentifierInterface
 
     public function __construct(
         ?TreeInterface $parent,
-        string $id,
+        Identifier $id,
         ?string $name,
         bool $hidden,
         bool $collective,
         bool $import,
-        string $targetId,
+        Identifier $targetId,
         EntryLinkType $type
     )
     {
@@ -55,7 +56,17 @@ class EntryLink implements IdentifierInterface
         $this->categoryEntries = [];
     }
 
-    public function getId(): string
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->modifiers,
+            $this->categoryLinks,
+            $this->categoryEntries
+        );
+    }
+
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -63,14 +74,6 @@ class EntryLink implements IdentifierInterface
     public function getParent(): ?TreeInterface
     {
         return $this->parent;
-    }
-
-    public function getChildren(): array
-    {
-        return
-            $this->modifiers +
-            $this->categoryLinks +
-            $this->categoryEntries;
     }
 
     public function getName(): ?string
@@ -93,7 +96,7 @@ class EntryLink implements IdentifierInterface
         return $this->import;
     }
 
-    public function getTargetId(): string
+    public function getTargetId(): Identifier
     {
         return $this->targetId;
     }
@@ -157,7 +160,7 @@ class EntryLink implements IdentifierInterface
         }
     }
 
-    public static function fromXml(?IdentifierInterface $parent, ?SimpleXMLElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -169,21 +172,21 @@ class EntryLink implements IdentifierInterface
 
         $result = new self(
             $parent,
-            $element->getAttribute('id')->asString(),
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
             $element->getAttribute('collective')->asBoolean(),
             $element->getAttribute('import')->asBoolean(),
-            $element->getAttribute('targetId')->asString(),
+            $element->getAttribute('targetId')->asIdentifier(),
             $element->getAttribute('type')->asEnum(EntryLinkType::class),
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         foreach($element->xpath('categoryLinks/categoryLink') as $categoryLink) {
-            $result->addCategoryLink(CategoryLink::fromXml($categoryLink));
+            $result->addCategoryLink(CategoryLink::fromXml($result, $categoryLink));
         }
 
         return $result;

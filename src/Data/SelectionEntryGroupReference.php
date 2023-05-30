@@ -9,20 +9,20 @@ use Closure;
 class SelectionEntryGroupReference implements SelectionEntryGroupInterface
 {
     private EntryLink $entryLink;
-    private string $targetId;
+    private Identifier $targetId;
 
-    public function __construct(EntryLink $entryLink, string $targetId)
+    public function __construct(EntryLink $entryLink, Identifier $targetId)
     {
         $this->entryLink = $entryLink;
         $this->targetId = $targetId;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->entryLink->getId();
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->targetId;
     }
@@ -37,9 +37,9 @@ class SelectionEntryGroupReference implements SelectionEntryGroupInterface
         return $this->getParent()->getRoot();
     }
 
-    public function findSelectionEntryByMatcher(Closure $matcher): array
+    public function getGameSystem(): ?GameSystem
     {
-        return SharedSelectionEntryGroup::get($this->targetId)->findSelectionEntryByMatcher($matcher);
+        return $this->getParent()->getGameSystem();
     }
 
     public function getChildren(): array
@@ -67,7 +67,7 @@ class SelectionEntryGroupReference implements SelectionEntryGroupInterface
         return SharedSelectionEntryGroup::get($this->targetId)->isImport();
     }
 
-    public function getDefaultSelectionEntryId(): ?string
+    public function getDefaultSelectionEntryId(): ?Identifier
     {
         return SharedSelectionEntryGroup::get($this->targetId)->getDefaultSelectionEntryId();
     }
@@ -102,6 +102,11 @@ class SelectionEntryGroupReference implements SelectionEntryGroupInterface
         return SharedSelectionEntryGroup::get($this->targetId)->findSelectionEntryByName($name);
     }
 
+    public function findByMatcher(Closure $matcher): array
+    {
+        return SharedSelectionEntryGroup::get($this->targetId)->findByMatcher($matcher);
+    }
+
     /**
      * @inheritDoc
      */
@@ -116,5 +121,10 @@ class SelectionEntryGroupReference implements SelectionEntryGroupInterface
             // Non needed because converted to references
             // 'entry_links' => $this->entryLinks,
         ];
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
     }
 }

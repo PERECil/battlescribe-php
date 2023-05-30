@@ -6,5 +6,5 @@ namespace Battlescribe\Data;
 
 interface IdentifierInterface
 {
-    public function getId(): string;
+    public function getId(): Identifier;
 }

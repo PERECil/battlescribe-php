@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
-interface ConstraintInterface
+interface ConstraintInterface extends IdentifierInterface, TreeInterface
 {
-    public function getId(): string;
-
     public function getField(): string;
 
     public function getScope(): string;

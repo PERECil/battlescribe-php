@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Battlescribe\Query\Matcher;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use UnexpectedValueException;
 
-class Condition
+class Condition implements TreeInterface
 {
+    use LeafTrait;
+
     private const NAME = 'condition';
 
     private string $field;
@@ -19,10 +22,11 @@ class Condition
     private bool $shared;
     private bool $includeChildSelections;
     private bool $includeChildForces;
-    private string $childId;
+    private Identifier $childId;
     private ConditionType $conditionType;
 
     public function __construct(
+        ?TreeInterface $parent,
         string $field,
         string $scope,
         float $value,
@@ -30,10 +34,12 @@ class Condition
         bool $shared,
         bool $includeChildSelections,
         bool $includeChildForces,
-        string $childId,
+        Identifier $childId,
         ConditionType $conditionType
     )
     {
+        $this->parent = $parent;
+
         $this->field = $field;
         $this->scope = $scope;
         $this->value = $value;
@@ -56,10 +62,13 @@ class Condition
         if($this->field === "selections" && $this->scope === "force") {
 
             // Don't ask me why we look for categories, I don't know.
-            $selectionEntries = $entry->getRoot()->findSelectionEntryByMatcher(function(SelectionEntryInterface $selectionEntry) {
-                foreach($selectionEntry->getCategoryEntries() as $categoryEntry) {
-                    if($categoryEntry->getSharedId() === $this->childId) {
-                        return $selectionEntry->getSelectedCount() > 0;
+            $selectionEntries = $entry->getRoot()->findByMatcher(function(TreeInterface $selectionEntry) {
+
+                if($selectionEntry instanceof SelectionEntryInterface) {
+                    foreach($selectionEntry->getCategoryEntries() as $categoryEntry) {
+                        if($categoryEntry->getSharedId()->equals($this->childId)) {
+                            return $selectionEntry->getSelectedCount() > 0;
+                        }
                     }
                 }
 
@@ -73,6 +82,10 @@ class Condition
                     return $count == $this->value;
                 case ConditionType::AT_LEAST:
                     return $count >= $this->value;
+                case ConditionType::INSTANCE_OF:
+                    echo 'Unhandled case on condition INSTANCE_OF'; break;
+                case ConditionType::NOT_INSTANCE_OF:
+                    echo 'Unhandled case on condition NOT_INSTANCE_OF'; break;
                 default:
                     throw new UnexpectedValueException( "Unhandled condition type ".$this->conditionType->getValue());
             }
@@ -81,17 +94,19 @@ class Condition
         // Go back in the tree, looking for the child id (in categories it seems?)
         if($this->field === "selections" && $this->scope === "ancestor") {
 
-            // Tested - Guardian defender with non specialist should remove combat
+            // Tested - Guardian defender without specialist should remove combat
             $found = false;
 
-            while(($entry = self::getClosestSelectionFrom($entry)) !== null) {
+            // TODO Should we use the selections entries, and filter those that are ancestors to this entry ?
+            $categorizableEntries = self::getCategorizableEntries($entry);
+            // $selectedElements = $this->getRoot()->getSelections();
 
-                foreach($entry->getCategoryLinks() as $categoryLink) {
-                    if($categoryLink->getTargetId() === $this->childId) {
+            foreach($categorizableEntries as $e) {
+                foreach($e->getCategoryLinks() as $categoryLink) {
+                    if($categoryLink->getTargetId()->equals($this->childId)) {
                         $found = true;
                     }
                 }
-
             }
 
             switch ($this->conditionType) {
@@ -105,13 +120,13 @@ class Condition
         // From the dev of Battlescribe himself:
         // - "Direct parent" refers to the parent only - not any "antecedent"
         // - "Instance of" is really meant to go on shared items, so that your conditions can say
-        //                 "if this shared item is linked to X" (in conjunction with "direct parent".
+        //                 "if this shared item is linked to X" in conjunction with "direct parent".
         // https://www.reddit.com/r/BattleScribe/comments/3t8bdg/direct_parent_not_working/cxi0ykw?context=3
         if($this->field === "selections" && $this->scope === "parent") {
 
             $count = 0;
 
-            if($entry->getParent()->getId() === $this->childId) {
+            if($entry->getParent()->getId()->equals($this->childId)) {
                 $count++;
             }
 
@@ -120,21 +135,35 @@ class Condition
                 case ConditionType::NOT_INSTANCE_OF: return $count === 0;
                 case ConditionType::EQUAL_TO: return $count == $this->value;
                 case ConditionType::AT_LEAST: return $count >= $this->value;
+                case ConditionType::GREATER_THAN: return $count < $this->value;
                 default:
                     throw new UnexpectedValueException( "Unhandled condition type ".$this->conditionType->getValue());
             }
         }
 
-        // Find an instance of category that is primary by it's field
+        // Find an instance of category that is primary by its field
         if($this->field === "selections" && $this->scope === "primary-category" && ConditionType::INSTANCE_OF()->equals($this->conditionType)) {
 
             // Tested - Guardian specialist should remove leader from specialism
             // Tested - Guardian leader removes anything else but leader from specialism
-            $selection = self::getSelectionFrom($entry);
+
+            /*
+            $test = $entry->getRoot()->findByMatcher(Matcher::isPrimaryCategory());
 
             // TODO Replace this with category entries shared id
-            foreach($selection->getCategoryLinks() as $categoryLink) {
-                if($categoryLink->isPrimary() && $categoryLink->getTargetId() === $this->childId) {
+            foreach($test as $category) {
+                if($category->getSharedId()->equals($this->childId)) {
+                    return true;
+                }
+            }
+
+            return false;
+            */
+
+            $selection = self::getRootSelectionFrom($entry);
+
+            foreach ($selection->getCategoryLinks() as $categoryLink) {
+                if ($categoryLink->isPrimary() && $categoryLink->getTargetId()->equals($this->childId)) {
                     return true;
                 }
             }
@@ -142,14 +171,28 @@ class Condition
             return false;
         }
 
-        // Find an instance of category that is primary by it's field
+
+
+        // Find an instance of category that is primary by its field
         if($this->field === "selections" && $this->scope === "primary-category" && ConditionType::NOT_INSTANCE_OF()->equals($this->conditionType)) {
 
-            $selection = self::getSelectionFrom($entry);
+            /*
+            $test = $entry->getRoot()->findByMatcher(Matcher::isPrimaryCategory());
 
             // TODO Replace this with category entries shared id
-            foreach($selection->getCategoryLinks() as $categoryLink) {
-                if($categoryLink->isPrimary() && $categoryLink->getTargetId() === $this->childId) {
+            foreach($test as $category) {
+                if($category->getSharedId()->equals($this->childId)) {
+                    return false;
+                }
+            }
+
+            return true;
+            */
+
+            $selection = self::getRootSelectionFrom($entry);
+
+            foreach ($selection->getCategoryLinks() as $categoryLink) {
+                if ($categoryLink->isPrimary() && $categoryLink->getTargetId()->equals($this->childId)) {
                     return false;
                 }
             }
@@ -165,6 +208,22 @@ class Condition
                 case ConditionType::NOT_INSTANCE_OF: return $selections === 0;
                 case ConditionType::EQUAL_TO: return $selections == $this->value;
                 case ConditionType::AT_LEAST: return $selections >= $this->value;
+                case ConditionType::LESS_THAN: return $selections > $this->value;
+                case ConditionType::GREATER_THAN: return $selections < $this->value;
+                default:
+                    throw new UnexpectedValueException( "Unhandled condition type ".$this->conditionType->getValue());
+            }
+        }
+
+        if($this->field === "forces" && $this->scope === "roster" ) {
+
+            $selections = count($entry->getRoot()->getForces());
+
+            switch($this->conditionType) {
+                case ConditionType::EQUAL_TO: return $selections == $this->value;
+                case ConditionType::AT_LEAST: return $selections >= $this->value;
+                case ConditionType::GREATER_THAN: return $selections < $this->value;
+                case ConditionType::LESS_THAN: return $selections > $this->value;
                 default:
                     throw new UnexpectedValueException( "Unhandled condition type ".$this->conditionType->getValue());
             }
@@ -178,15 +237,15 @@ class Condition
      * @param string $childId
      * @return int
      */
-    public static function countSelections(array $entries, string $childId): int
+    public static function countSelections(array $entries, Identifier $childId): int
     {
         $selections = 0;
 
         foreach($entries as $entry) {
 
             // Locate the child id in the scope
-            $elements = $entry->findSelectionEntryByMatcher(function(SelectionEntryInterface $element) use($childId): bool {
-                return $element->getSharedId() === $childId;
+            $elements = $entry->findByMatcher(function(TreeInterface $element) use($childId): bool {
+                return ($element instanceof SelectionEntryInterface) && $element->getSharedId()->equals($childId);
             });
 
             foreach($elements as $element) {
@@ -214,8 +273,14 @@ class Condition
      */
     public static function findFrom(ModifiableInterface $entry, string $scope): array
     {
-        return $entry->getRoot()->findSelectionEntryByMatcher( function( SelectionEntryInterface $entry) use($scope): bool {
-            return $entry->getSharedId() === $scope;
+        if(!preg_match( '%[a-f0-9-]+%', $scope)) {
+            throw new UnexpectedValueException( 'Scope "'.$scope.'" is not an identifier');
+        }
+
+        $scope = new Identifier($scope);
+
+        return $entry->getRoot()->findByMatcher( function(TreeInterface $element) use($scope): bool {
+            return ($element instanceof SelectionEntryInterface) && $element->getSharedId()->equals($scope);
         });
 
         /*
@@ -241,19 +306,33 @@ class Condition
         */
     }
 
-    public static function getClosestSelectionFrom(TreeInterface $entry): ?SelectionEntryInterface
+    /** @return CategorizableInterface[] */
+    public static function getCategorizableEntries(TreeInterface $entry): array
     {
-        do {
-            $entry = $entry->getParent();
-        } while($entry !== null && !($entry instanceof SelectionEntryInterface));
+        $results = [];
 
-        return $entry;
+        do {
+            if($entry instanceof SelectionEntryInterface) {
+            // if($entry instanceof CategorizableInterface) {
+                $results[] = $entry;
+            }
+
+            $entry = $entry->getParent();
+        } while($entry !== null);
+
+        return $results;
     }
 
-    public static function getSelectionFrom(TreeInterface $entry): TreeInterface
+    public static function getRootSelectionFrom(TreeInterface $entry): SelectionEntryInterface
     {
-        // Rewind back the tree until the parent's parent is null (meaning that the parent is the roster)
-        while($entry->getParent()->getParent() !== null) {
+        // The expected structure is:
+        // - First the roster instance
+        // - then the force instance
+        // - then a series of selection
+        // So if the parent's parent's parent's is null, that means we are currently at the root selection,
+        // i.e. the selection directly under a force instance
+
+        while($entry->getParent()?->getParent()?->getParent() !== null) {
             $entry = $entry->getParent();
         }
 
@@ -295,7 +374,7 @@ class Condition
         return $this->includeChildForces;
     }
 
-    public function getChildId(): string
+    public function getChildId(): Identifier
     {
         return $this->childId;
     }
@@ -305,7 +384,7 @@ class Condition
         return $this->conditionType;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -316,6 +395,7 @@ class Condition
         }
 
         return new self(
+            $parent,
             $element->getAttribute('field')->asString(),
             $element->getAttribute('scope')->asString(),
             $element->getAttribute('value')->asFloat(),
@@ -323,7 +403,7 @@ class Condition
             $element->getAttribute('shared')->asBoolean(),
             $element->getAttribute('includeChildSelections')->asBoolean(),
             $element->getAttribute('includeChildForces')->asBoolean(),
-            $element->getAttribute('childId')->asString(),
+            $element->getAttribute('childId')->asIdentifier(),
             $element->getAttribute('type')->asEnum(ConditionType::class),
         );
     }

@@ -9,8 +9,8 @@ class SharedSelectionEntry extends SelectionEntry
     private static array $instances = [];
 
     public function __construct(
-        ?IdentifierInterface $parent,
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
         bool $hidden,
         bool $collective,
@@ -20,11 +20,21 @@ class SharedSelectionEntry extends SelectionEntry
     {
         parent::__construct($parent, $id, $name, $hidden, $collective, $import, $type);
 
-        self::$instances[ $id ] = $this;
+        self::$instances[ $id->getValue() ] = $this;
     }
 
-    public static function get(string $id): self
+    public function __wakeup(): void
     {
-        return self::$instances[ $id ];
+        self::$instances[ $this->getId()->getValue() ] = $this;
+    }
+
+    public static function get(Identifier $id): ?self
+    {
+        return self::$instances[ $id->getValue() ] ?? null;
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
     }
 }

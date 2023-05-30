@@ -7,29 +7,38 @@ namespace Battlescribe\Data;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 
-class CostType
+class CostType implements IdentifierInterface, TreeInterface
 {
+    use LeafTrait;
+
     private const NAME = 'costType';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
     private float $defaultCostLimit;
-    private bool $hidden;
+    private ?bool $hidden;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
         float $defaultCostLimit,
-        bool $hidden
+        ?bool $hidden
     )
     {
+        $this->parent = $parent;
         $this->id = $id;
         $this->name = $name;
         $this->defaultCostLimit = $defaultCostLimit;
         $this->hidden = $hidden;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public function getId(): Identifier
+    {
+        return $this->id;
+    }
+
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -40,7 +49,8 @@ class CostType
         }
 
         return new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('defaultCostLimit')->asFloat(),
             $element->getAttribute('hidden')->asBoolean(),

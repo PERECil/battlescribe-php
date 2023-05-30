@@ -6,9 +6,12 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
+use Closure;
 
-class DataIndex
+class DataIndex implements TreeInterface
 {
+    use RootTrait;
+
     private const NAME = 'dataIndex';
 
     private string $basePath;
@@ -23,6 +26,15 @@ class DataIndex
         $this->basePath = $basePath;
         $this->name = $name;
         $this->battlescribeVersion = $battlescribeVersion;
+        $this->dataIndexEntries = [];
+    }
+
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->dataIndexEntries,
+        );
     }
 
     public function getBasePath(): string
@@ -85,7 +97,7 @@ class DataIndex
         );
 
         foreach($element->xpath('dataIndexEntries/dataIndexEntry') as $dataIndexEntry) {
-            $result->addDataIndexEntry(DataIndexEntry::fromXml($dataIndexEntry));
+            $result->addDataIndexEntry(DataIndexEntry::fromXml($result, $dataIndexEntry));
         }
 
         return $result;

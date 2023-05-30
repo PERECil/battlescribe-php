@@ -8,24 +8,29 @@ use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use UnexpectedValueException;
 
-class InfoLink
+class InfoLink implements IdentifierInterface, TreeInterface
 {
+    use LeafTrait;
+
     private const NAME = 'infoLink';
 
-    private string $id;
-    private string $name;
+    private Identifier $id;
+    private ?string $name;
     private bool $hidden;
-    private string $targetId;
+    private Identifier $targetId;
     private InfoLinkType $type;
 
     public function __construct(
-        string $id,
-        string $name,
+        ?TreeInterface $parent,
+        Identifier $id,
+        ?string $name,
         bool $hidden,
-        string $targetId,
+        Identifier $targetId,
         InfoLinkType $type
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->hidden = $hidden;
@@ -33,14 +38,12 @@ class InfoLink
         $this->type = $type;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
 
-    /**
-     * @return ProfileReference|RuleReference|InfoGroupReference
-     */
+    /** @return ProfileReference|RuleReference|InfoGroupReference */
     public function getLinkedObject()
     {
         switch($this->type->getValue())
@@ -53,7 +56,7 @@ class InfoLink
         }
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -64,10 +67,11 @@ class InfoLink
         }
 
         return new self(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
-            $element->getAttribute('targetId')->asString(),
+            $element->getAttribute('targetId')->asIdentifier(),
             $element->getAttribute('type')->asEnum( InfoLinkType::class),
         );
     }

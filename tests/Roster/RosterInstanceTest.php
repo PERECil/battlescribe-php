@@ -6,18 +6,23 @@ namespace Tests\Battlescribe\Roster;
 
 use Battlescribe\Data\Catalog;
 use Battlescribe\Data\DataIndex;
+use Battlescribe\Data\ForceEntry;
 use Battlescribe\Data\GameSystem;
-use Battlescribe\Data\Repository;
+use Battlescribe\Data\Identifier;
+use Battlescribe\Query\Matcher;
 use Battlescribe\Roster\Roster;
+use Battlescribe\Roster\RosterInstance;
+use Battlescribe\Services\ImportRelease\Release;
+use Battlescribe\Services\ImportRepository\Repository;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
-class RosterTest extends TestCase
+class RosterInstanceTest extends TestCase
 {
     private static GameSystem $gameSystem;
     private static ?Catalog $asuryani;
 
-    private Roster $roster;
+    private RosterInstance $roster;
 
     public static function setUpBeforeClass(): void
     {
@@ -25,20 +30,24 @@ class RosterTest extends TestCase
 
         $index = DataIndex::fromFile(__DIR__ . '/../Resources/wh40k-killteam/v1.4.29/index.xml');
 
-        $repository = Repository::fromDataIndex($index);
+        $repository = Repository::fromDataIndex(new Release('v1.4.29'), $index);
 
         self::$gameSystem = $repository->getGameSystem();
-        self::$asuryani = $repository->findCatalogById('a796-a947-905e-205c');
+        self::$asuryani = $repository->findCatalogById(Identifier::fromString('a796-a947-905e-205c'));
     }
 
     public function setUp(): void
     {
-        $this->roster = new Roster(self::$gameSystem);
+        $this->roster = RosterInstance::fromGameSystem(self::$gameSystem, 'test');
+
+        $forces = self::$gameSystem->findByMatcher(Matcher::allOf(Matcher::type(ForceEntry::class), Matcher::name('Kill Team List')));
+
+        $this->roster->addForce($forces[0]);
     }
 
     public function testInitialRosterShouldHaveListConfiguration(): void
     {
-        $listConfiguration = $this->roster->findSelectionEntryByName('List Configuration');
+        $listConfiguration = $this->roster->findByMatcher(Matcher::name('List Configuration'));
 
         Assert::assertNotNull($listConfiguration);
         Assert::assertCount(1, $listConfiguration);
@@ -47,7 +56,7 @@ class RosterTest extends TestCase
 
     public function testInitialRosterShouldHaveMatchedPlaySelected(): void
     {
-        $listConfiguration = $this->roster->findSelectionEntryByName('List Configuration');
+        $listConfiguration = $this->roster->findByMatcher(Matcher::name('List Configuration'));
 
         Assert::assertNotNull($listConfiguration);
         Assert::assertCount(1, $listConfiguration);
@@ -58,7 +67,7 @@ class RosterTest extends TestCase
 
     public function testInitialRosterShouldHaveResourcesHidden(): void
     {
-        $resources = $this->roster->findSelectionEntryByName('Resources');
+        $resources = $this->roster->findByMatcher(Matcher::name('Resources'));
 
         Assert::assertNotNull($resources);
         Assert::assertCount(1, $resources);
@@ -67,7 +76,7 @@ class RosterTest extends TestCase
 
     public function testRosterWithCampaignConfigurationShouldShowResources(): void
     {
-        $listConfiguration = $this->roster->findSelectionEntryByName('List Configuration');
+        $listConfiguration = $this->roster->findByMatcher(Matcher::name('List Configuration'));
 
         $campaign = $listConfiguration[0]->getSelectionEntryGroups()[0]->findSelectionEntryByName('Campaign: Kill Team')[0];
 
@@ -77,7 +86,7 @@ class RosterTest extends TestCase
         Assert::assertCount(1, $listConfiguration);
         Assert::assertSame('Campaign: Kill Team', $listConfiguration[0]->getSelectionEntryGroups()[0]->getSelectedEntry()->getName());
 
-        $resources = $this->roster->findSelectionEntryByName('Resources');
+        $resources = $this->roster->findByMatcher(Matcher::name('Resources'));
 
         Assert::assertNotNull($resources);
         Assert::assertCount(1, $resources);
@@ -89,9 +98,9 @@ class RosterTest extends TestCase
 
         // Ensure that 0 resource is selected, the min is 0 and there is no maximum
         foreach($resources[0]->getSelectionEntries() as $selectionEntry) {
-            Assert::assertSame(0, $selectionEntry->getMinimumSelectedCount());
+            Assert::assertSame(1, $selectionEntry->getMinimumSelectedCount());
             Assert::assertSame(null, $selectionEntry->getMaximumSelectedCount());
-            Assert::assertSame(0, $selectionEntry->getSelectedCount());
+            Assert::assertSame(1, $selectionEntry->getSelectedCount());
         }
     }
 }

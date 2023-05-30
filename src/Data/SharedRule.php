@@ -4,20 +4,34 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Exception;
+
 class SharedRule extends Rule
 {
-    /** @psalm-var array<string,SharedRule> */
+    /** @var array<string,SharedRule> */
     private static array $instances = [];
 
-    public function __construct(string $id, string $name, bool $hidden, ?string $description)
+    public function __construct(
+        ?TreeInterface $parent,
+        Identifier $id,
+        string $name,
+        string $publicationId,
+        bool $hidden,
+        ?string $description
+    )
     {
-        parent::__construct($id, $name, $hidden, $description);
+        parent::__construct($parent, $id, $name, $publicationId, $hidden, $description);
 
-        self::$instances[ $id ] = $this;
+        self::$instances[ $id->getValue() ] = $this;
     }
 
-    public static function get(string $id): self
+    public function __wakeup(): void
     {
-        return self::$instances[ $id ];
+        self::$instances[ $this->getId()->getValue() ] = $this;
+    }
+
+    public static function get(Identifier $id): ?self
+    {
+        return self::$instances[ $id->getValue() ] ?? null;
     }
 }

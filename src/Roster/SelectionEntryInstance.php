@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Battlescribe\Roster;
 
-use Battlescribe\Data\ConstraintType;
+use Battlescribe\Data\BranchTrait;
+use Battlescribe\Data\Identifier;
+use Battlescribe\Data\SelectableInterface;
+use Battlescribe\Data\SelectableTrait;
 use Battlescribe\Data\SelectionEntryGroupInterface;
 use Battlescribe\Data\SelectionEntryInterface;
 use Battlescribe\Data\SelectionEntryType;
@@ -13,7 +16,8 @@ use Closure;
 
 class SelectionEntryInstance implements SelectionEntryInterface
 {
-    private TreeInterface $parent;
+    use BranchTrait;
+    use SelectableTrait;
 
     private string $instanceId;
 
@@ -37,13 +41,10 @@ class SelectionEntryInstance implements SelectionEntryInterface
     /** @var ErrorInterface[] */
     private array $errors;
 
-    private int $selectedCount;
-    private ?int $minimumSelectedCount;
-    private ?int $maximumSelectedCount;
-
-    public function __construct(TreeInterface $parent, SelectionEntryInterface $implementation)
+    public function __construct(?TreeInterface $parent, SelectionEntryInterface $implementation)
     {
         $this->parent = $parent;
+
         $this->instanceId = spl_object_hash($this);
         $this->implementation = $implementation;
 
@@ -66,25 +67,22 @@ class SelectionEntryInstance implements SelectionEntryInterface
         $this->costs = [];
 
         foreach($this->implementation->getCosts() as $cost) {
-            $this->costs[] = new CostInstance($cost);
+            $this->costs[] = new CostInstance($this, $cost);
         }
 
         // Needs to have instances because modifiers can modify constraints
         $this->constraints = [];
 
         foreach($this->implementation->getConstraints() as $constraint) {
-            $this->constraints[] = new ConstraintInstance($constraint);
+            $this->constraints[] = new ConstraintInstance($this, $constraint);
         }
 
         // If there is a selection entry group as a parent, the item is selected only if it's the default selection
         if($this->parent instanceof SelectionEntryGroupInterface) {
-            $this->selectedCount = $this->parent->getDefaultSelectionEntryId() === $this->implementation->getSharedId() ? 1 : 0;
+            $this->selectedCount = $this->parent->getDefaultSelectionEntryId()?->equals($this->implementation->getSharedId()) ? 1 : 0;
         } else {
             $this->selectedCount = 1;
         }
-
-        $this->minimumSelectedCount = null;
-        $this->maximumSelectedCount = null;
 
         $this->errors = [];
     }
@@ -94,12 +92,18 @@ class SelectionEntryInstance implements SelectionEntryInterface
         $this->errors[] = $error;
     }
 
+    /** @return ErrorInterface[] */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
     /**
      * @param SelectionEntryInstance[] $selectionEntries
      */
     public function computeState(array $selectionEntries): void
     {
-        foreach($this->getConstraints() as $constraint) {
+        foreach($this->constraints as $constraint) {
             $constraint->applyTo($selectionEntries, $this);
         }
 
@@ -149,83 +153,36 @@ class SelectionEntryInstance implements SelectionEntryInterface
         return null;
     }
 
-    public function getParent(): ?TreeInterface
+    public function getImplementation(): SelectionEntryInterface
     {
-        return $this->parent;
-    }
-
-    public function getRoot(): TreeInterface
-    {
-        return $this->getParent()->getRoot();
-    }
-
-    public function setSelectedCount(int $selectedCount): void
-    {
-        $this->selectedCount = $selectedCount;
-    }
-
-    public function getSelectedCount(): int
-    {
-        return $this->selectedCount;
-    }
-
-    public function setMinimumSelectedCount(int $minimumSelectedCount): void
-    {
-        $this->minimumSelectedCount = $minimumSelectedCount;
-    }
-
-    public function getMinimumSelectedCount(): ?int
-    {
-        return $this->minimumSelectedCount;
-    }
-
-    public function setMaximumSelectedCount(int $maximumSelectedCount): void
-    {
-        $this->maximumSelectedCount = $maximumSelectedCount;
-    }
-
-    public function getMaximumSelectedCount(): ?int
-    {
-        return $this->maximumSelectedCount;
-    }
-
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        foreach($this->getSelectionEntryGroups() as $selectionEntryGroup) {
-            $result += $selectionEntryGroup->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
+        return $this->implementation;
     }
 
     public function getChildren(): array
     {
-        return
-            $this->selectionEntryGroups +
-            $this->selectionEntries;
+        return array_merge(
+            $this->selectionEntryGroups,
+            $this->selectionEntries,
+            $this->implementation->getRules()
+        );
     }
 
-    public function getId(): string
+    public function getRules(): array
+    {
+        return $this->implementation->getRules();
+    }
+
+    public function getId(): Identifier
     {
         return $this->implementation->getId();
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->implementation->getSharedId();
     }
 
-    public function getSelectedEntryId(): ?string
+    public function getSelectedEntryId(): ?Identifier
     {
         return $this->implementation->getSharedId();
     }
@@ -283,10 +240,10 @@ class SelectionEntryInstance implements SelectionEntryInterface
         return $this->constraints;
     }
 
-    public function findConstraint(string $id): ?ConstraintInstance
+    public function findConstraint(Identifier $id): ?ConstraintInstance
     {
         foreach($this->constraints as $constraint) {
-            if($constraint->getId() === $id) {
+            if($constraint->getId()->equals($id)) {
                 return $constraint;
             }
         }
@@ -294,42 +251,37 @@ class SelectionEntryInstance implements SelectionEntryInterface
         return null;
     }
 
-    public function findCost(string $id): ?CostInstance
-    {
-        foreach($this->costs as $cost) {
-            if($cost->getTypeId() === $id) {
-                return $cost;
-            }
-        }
-
-        return null;
-    }
-
+    /** @inheritDoc */
     public function getProfiles(): array
     {
         return $this->implementation->getProfiles();
     }
 
+    /** @inheritDoc */
     public function getInfoLinks(): array
     {
         return $this->implementation->getInfoLinks();
     }
 
+    /** @inheritDoc */
     public function getCategoryLinks(): array
     {
         return $this->implementation->getCategoryLinks();
     }
 
+    /** @inheritDoc */
     public function getSelectionEntryGroups(): array
     {
         return $this->selectionEntryGroups;
     }
 
+    /** @inheritDoc */
     public function getSelectionEntries(): array
     {
         return $this->selectionEntries;
     }
 
+    /** @inheritDoc */
     public function getEntryLinks(): array
     {
         return $this->implementation->getEntryLinks();
@@ -343,5 +295,28 @@ class SelectionEntryInstance implements SelectionEntryInterface
     public function getCategoryEntries(): array
     {
         return $this->implementation->getCategoryEntries();
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
+    }
+
+    public function getSelections(): array
+    {
+        $result = [];
+
+        foreach( $this->selectionEntries as $se) {
+            if($se->getSelectedCount() > 0) {
+                $result[] = $se;
+                $result = array_merge($result, $se->getSelections());
+            }
+        }
+
+        foreach( $this->selectionEntryGroups as $seg) {
+            $result = array_merge($result, $seg->getSelections());
+        }
+
+        return $result;
     }
 }

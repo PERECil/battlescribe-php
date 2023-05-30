@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace Battlescribe\Roster;
 
+use Battlescribe\Data\BranchTrait;
+use Battlescribe\Data\ConstraintInterface;
+use Battlescribe\Data\Identifier;
 use Battlescribe\Data\SelectionEntryGroupInterface;
 use Battlescribe\Data\SelectionEntryInterface;
 use Battlescribe\Data\TreeInterface;
 use Closure;
+use Exception;
 use UnexpectedValueException;
 
 class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
 {
-    private TreeInterface $parent;
+    use BranchTrait;
+
     private string $instanceId;
     private SelectionEntryGroupInterface $implementation;
     private ?bool $hiddenOverride;
@@ -26,9 +31,10 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
     /** @var ConstraintInstance[] */
     private array $constraints;
 
-    public function __construct(TreeInterface $parent, SelectionEntryGroupInterface $implementation)
+    public function __construct(?TreeInterface $parent, SelectionEntryGroupInterface $implementation)
     {
         $this->parent = $parent;
+
         $this->instanceId = spl_object_hash($this);
         $this->implementation = $implementation;
         $this->hiddenOverride = null;
@@ -41,7 +47,7 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
 
             $this->selectionEntries[] = $instance;
 
-            if($selectionEntry->getId() === $this->getDefaultSelectionEntryId()) {
+            if($this->getDefaultSelectionEntryId()?->equals($selectionEntry->getId())) {
                 $instance->setSelectedCount(1);
             } else {
                 $instance->setSelectedCount(0);
@@ -65,12 +71,29 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
             */
         }
 
-        // Needs to have instances because modifiers can modify constraints
+        // Need to have instances because modifiers can modify constraints
         $this->constraints = [];
 
         foreach($this->implementation->getConstraints() as $constraint) {
-            $this->constraints[] = new ConstraintInstance($constraint);
+            $this->constraints[] = new ConstraintInstance($this, $constraint);
         }
+    }
+
+    public function getSelectedEntry(): ?SelectionEntryInterface
+    {
+        $result = null;
+
+        foreach($this->selectionEntries as $selectionEntry) {
+            if($selectionEntry->getSelectedCount() > 0) {
+                if($result !== null) {
+                    throw new Exception('Multiple selected entries found');
+                }
+
+                $result = $selectionEntry;
+            }
+        }
+
+        return $result;
     }
 
     public function computeState(array $selectionEntries): void
@@ -93,12 +116,12 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         return $this->instanceId;
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->implementation->getId();
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->implementation->getSharedId();
     }
@@ -123,30 +146,6 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         }
     }
 
-    public function getRoot(): TreeInterface
-    {
-        return $this->getParent()->getRoot();
-    }
-
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        foreach($this->getSelectionEntryGroups() as $selectionEntryGroup) {
-            $result += $selectionEntryGroup->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
-    }
-
     public function findSelectionEntryGroupByInstanceId(string $instanceId): ?SelectionEntryGroupInstance
     {
         foreach($this->selectionEntryGroups as $selectionEntryGroup) {
@@ -164,11 +163,6 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         }
 
         return null;
-    }
-
-    public function getParent(): ?TreeInterface
-    {
-        return $this->parent;
     }
 
     public function getChildren(): array
@@ -190,7 +184,7 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
 
     public function setHidden(?bool $hidden): void
     {
-        $this->hiddenOverride = $hidden;
+        $this->hiddenOverride = $hidden ?? $this->hiddenOverride;
     }
 
     public function isCollective(): bool
@@ -203,30 +197,33 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
         return $this->implementation->isImport();
     }
 
-    public function getDefaultSelectionEntryId(): ?string
+    public function getDefaultSelectionEntryId(): ?Identifier
     {
         return $this->implementation->getDefaultSelectionEntryId();
     }
 
+    /** @inheritDoc */
     public function getModifiers(): array
     {
         return $this->implementation->getModifiers();
     }
 
+    /** @inheritDoc */
     public function getConstraints(): array
     {
         return $this->implementation->getConstraints();
     }
 
+    /** @inheritDoc */
     public function getSelectionEntries(): array
     {
         return $this->selectionEntries;
     }
 
-    public function findConstraint(string $id): ?ConstraintInstance
+    public function findConstraint(Identifier $id): ?ConstraintInstance
     {
         foreach($this->constraints as $constraint) {
-            if($constraint->getId() === $id) {
+            if($constraint->getId()->equals($id)) {
                 return $constraint;
             }
         }
@@ -255,5 +252,28 @@ class SelectionEntryGroupInstance implements SelectionEntryGroupInterface
     public function getEntryLinks(): array
     {
         return $this->implementation->getEntryLinks();
+    }
+
+    public function __toString(): string
+    {
+        return $this->getName();
+    }
+
+    public function getSelections(): array
+    {
+        $result = [];
+
+        foreach( $this->selectionEntries as $se) {
+            if($se->getSelectedCount() > 0) {
+                $result[] = $se;
+                $result = array_merge($result, $se->getSelections());
+            }
+        }
+
+        foreach( $this->selectionEntryGroups as $seg) {
+            $result = array_merge($result, $seg->getSelections());
+        }
+
+        return $result;
     }
 }

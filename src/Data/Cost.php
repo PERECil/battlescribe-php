@@ -6,24 +6,34 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
+use Exception;
 
 class Cost implements CostInterface
 {
+    use LeafTrait;
+
     private const NAME = 'cost';
 
     private string $name;
-    private string $typeId;
+    private ?Identifier $typeId;
     private float $value;
 
+    private ?float $valueOverride;
+
     public function __construct(
+        ?TreeInterface $parent,
         string $name,
-        string $typeId,
+        ?Identifier $typeId,
         float $value
     )
     {
+        $this->parent = $parent;
+
         $this->name = $name;
         $this->typeId = $typeId;
         $this->value = $value;
+
+        $this->valueOverride = null;
     }
 
     public function getName(): string
@@ -31,14 +41,19 @@ class Cost implements CostInterface
         return $this->name;
     }
 
-    public function getTypeId(): string
+    public function getTypeId(): ?Identifier
     {
         return $this->typeId;
     }
 
+    public function setValue(?float $value): void
+    {
+        $this->valueOverride = $value;
+    }
+
     public function getValue(): float
     {
-        return $this->value;
+        return $this->valueOverride ?? $this->value;
     }
 
     public function isFree(): bool
@@ -46,7 +61,7 @@ class Cost implements CostInterface
         return abs($this->value) < 0.001;
     }
 
-    public static function fromXml(?SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -57,8 +72,9 @@ class Cost implements CostInterface
         }
 
         return new self(
+            $parent,
             $element->getAttribute('name')->asString(),
-            $element->getAttribute('typeId')->asString(),
+            $element->getAttribute('typeId')->asIdentifier(),
             $element->getAttribute('value')->asFloat(),
         );
     }

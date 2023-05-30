@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Battlescribe\Data;
 
+use Battlescribe\Data\Traits\HasCostTrait;
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
 use Closure;
@@ -11,10 +12,16 @@ use UnexpectedValueException;
 
 class SelectionEntry implements SelectionEntryInterface
 {
+    use BranchTrait;
+    use EntryLinkTrait;
+    use SelectableTrait;
+
+    use HasCostTrait;
+
     private const NAME = 'selectionEntry';
 
     private ?TreeInterface $parent;
-    private string $id;
+    private Identifier $id;
     private string $name;
     private bool $hidden;
     private bool $collective;
@@ -42,12 +49,6 @@ class SelectionEntry implements SelectionEntryInterface
     /** @var SelectionEntryInterface[] */
     private array $selectionEntries;
 
-    /** @var EntryLink[] */
-    private array $entryLinks;
-
-    /** @var Cost[] */
-    private array $costs;
-
     /** @var CategoryEntryInterface[] */
     private array $categoryEntries;
 
@@ -58,8 +59,8 @@ class SelectionEntry implements SelectionEntryInterface
     private array $infoGroups;
 
     public function __construct(
-        ?IdentifierInterface $parent,
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
         bool $hidden,
         bool $collective,
@@ -91,58 +92,29 @@ class SelectionEntry implements SelectionEntryInterface
         $this->infoGroups = [];
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->id;
     }
 
-    public function getParent(): ?TreeInterface
-    {
-        return $this->parent;
-    }
-
-    public function getRoot(): TreeInterface
-    {
-        return $this->getParent()->getRoot();
-    }
-
-    public function findSelectionEntryByMatcher(Closure $matcher): array
-    {
-        $result = [];
-
-        foreach($this->getSelectionEntries() as $selectionEntry) {
-            if($matcher($selectionEntry)) {
-                $result[] = $selectionEntry;
-            }
-
-            $result += $selectionEntry->findSelectionEntryByMatcher($matcher);
-        }
-
-        foreach($this->getSelectionEntryGroups() as $selectionEntryGroup) {
-            $result += $selectionEntryGroup->findSelectionEntryByMatcher($matcher);
-        }
-
-        return $result;
-    }
-
+    /** @inheritDoc */
     public function getChildren(): array
     {
-        // modifiers don't have an id,
-        // remove it from children
-
-        return
-            $this->constraints +
-            $this->profiles +
-            $this->infoLinks +
-            $this->categoryLinks +
-            $this->selectionEntryGroups +
-            $this->selectionEntries +
-            $this->entryLinks +
-            $this->costs +
-            $this->rules;
+        return array_merge(
+            $this->modifiers,
+            $this->constraints,
+            $this->profiles,
+            $this->infoLinks,
+            $this->categoryLinks,
+            $this->selectionEntryGroups,
+            $this->selectionEntries,
+            $this->entryLinks,
+            $this->costs,
+            $this->rules
+        );
     }
 
-    public function getId(): string
+    public function getId(): Identifier
     {
         return $this->id;
     }
@@ -182,10 +154,15 @@ class SelectionEntry implements SelectionEntryInterface
         return $this->constraints;
     }
 
-    public function findConstraint(string $id): ?Constraint
+    public function getRules(): array
+    {
+        return $this->rules;
+    }
+
+    public function findConstraint(Identifier $id): ?Constraint
     {
         foreach($this->constraints as $constraint) {
-            if($constraint->getId() === $id) {
+            if($constraint->getId()->equals($id)) {
                 return $constraint;
             }
         }
@@ -193,10 +170,10 @@ class SelectionEntry implements SelectionEntryInterface
         return null;
     }
 
-    public function findCost(string $id): ?Cost
+    public function findCost(Identifier $id): ?Cost
     {
         foreach($this->costs as $cost) {
-            if($cost->getId() === $id) {
+            if($cost->getId()->equals($id)) {
                 return $cost;
             }
         }
@@ -232,11 +209,6 @@ class SelectionEntry implements SelectionEntryInterface
     public function getEntryLinks(): array
     {
         return $this->entryLinks;
-    }
-
-    public function getCosts(): array
-    {
-        return $this->costs;
     }
 
     public function getCategoryEntries(): array
@@ -309,21 +281,6 @@ class SelectionEntry implements SelectionEntryInterface
         $this->selectionEntries[] = $selectionEntry;
     }
 
-    public function addEntryLink(EntryLink $entryLink): void
-    {
-        $this->entryLinks[] = $entryLink;
-
-        $linkedObject = $entryLink->getLinkedObject();
-
-        if($linkedObject instanceof SelectionEntryInterface) {
-            $this->addSelectionEntry($linkedObject);
-        } elseif($linkedObject instanceof SelectionEntryGroupInterface) {
-            $this->addSelectionEntryGroup($linkedObject);
-        } else {
-            throw new UnexpectedValueException();
-        }
-    }
-
     public function addCost(Cost $cost): void
     {
         $this->costs[] = $cost;
@@ -334,7 +291,7 @@ class SelectionEntry implements SelectionEntryInterface
         $this->rules[] = $rule;
     }
 
-    public static function fromXml(?IdentifierInterface $parent, SimpleXmlElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXmlElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -346,7 +303,7 @@ class SelectionEntry implements SelectionEntryInterface
 
         $result = new static(
             $parent,
-            $element->getAttribute('id')->asString(),
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean(),
             $element->getAttribute('collective')->asBoolean(),
@@ -355,23 +312,23 @@ class SelectionEntry implements SelectionEntryInterface
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         foreach($element->xpath('constraints/constraint') as $constraint) {
-            $result->addConstraint(Constraint::fromXml($constraint));
+            $result->addConstraint(Constraint::fromXml($result, $constraint));
         }
 
         foreach($element->xpath('profiles/profile') as $profile) {
-            $result->addProfile(Profile::fromXml($profile));
+            $result->addProfile(Profile::fromXml($result, $profile));
         }
 
         foreach($element->xpath('infoLinks/infoLink') as $infoLink) {
-            $result->addInfoLink(InfoLink::fromXml($infoLink));
+            $result->addInfoLink(InfoLink::fromXml($result, $infoLink));
         }
 
         foreach($element->xpath('categoryLinks/categoryLink') as $categoryLink) {
-            $result->addCategoryLink(CategoryLink::fromXml($categoryLink));
+            $result->addCategoryLink(CategoryLink::fromXml($result, $categoryLink));
         }
 
         foreach($element->xpath('selectionEntryGroups/selectionEntryGroup') as $selectionEntryGroup) {
@@ -387,7 +344,7 @@ class SelectionEntry implements SelectionEntryInterface
         }
 
         foreach($element->xpath('costs/cost') as $cost) {
-            $result->addCost(Cost::fromXml($cost));
+            $result->addCost(Cost::fromXml($result, $cost));
         }
 
         return $result;

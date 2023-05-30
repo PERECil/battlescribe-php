@@ -6,13 +6,14 @@ namespace Battlescribe\Data;
 
 use Battlescribe\Utils\SimpleXmlElementFacade;
 use Battlescribe\Utils\UnexpectedNodeException;
-use SimpleXMLElement;
 
 class CategoryEntry implements CategoryEntryInterface
 {
+    use BranchTrait;
+
     private const NAME = 'categoryEntry';
 
-    private string $id;
+    private Identifier $id;
     private string $name;
     private bool $hidden;
 
@@ -20,11 +21,14 @@ class CategoryEntry implements CategoryEntryInterface
     private array $modifiers;
 
     public function __construct(
-        string $id,
+        ?TreeInterface $parent,
+        Identifier $id,
         string $name,
         bool $hidden
     )
     {
+        $this->parent = $parent;
+
         $this->id = $id;
         $this->name = $name;
         $this->hidden = $hidden;
@@ -32,12 +36,20 @@ class CategoryEntry implements CategoryEntryInterface
         $this->modifiers = [];
     }
 
-    public function getId(): string
+    /** @inheritDoc */
+    public function getChildren(): array
+    {
+        return array_merge(
+            $this->modifiers,
+        );
+    }
+
+    public function getId(): Identifier
     {
         return $this->id;
     }
 
-    public function getSharedId(): string
+    public function getSharedId(): Identifier
     {
         return $this->id;
     }
@@ -57,7 +69,7 @@ class CategoryEntry implements CategoryEntryInterface
         $this->modifiers[] = $modifier;
     }
 
-    public static function fromXml(?SimpleXMLElementFacade $element): ?self
+    public static function fromXml(?TreeInterface $parent, ?SimpleXMLElementFacade $element): ?self
     {
         if($element === null) {
             return null;
@@ -68,13 +80,14 @@ class CategoryEntry implements CategoryEntryInterface
         }
 
         $result = new static(
-            $element->getAttribute('id')->asString(),
+            $parent,
+            $element->getAttribute('id')->asIdentifier(),
             $element->getAttribute('name')->asString(),
             $element->getAttribute('hidden')->asBoolean()
         );
 
         foreach($element->xpath('modifiers/modifier') as $modifier) {
-            $result->addModifier(Modifier::fromXml($modifier));
+            $result->addModifier(Modifier::fromXml($result, $modifier));
         }
 
         return $result;
